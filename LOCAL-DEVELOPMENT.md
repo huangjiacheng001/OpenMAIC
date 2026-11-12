@@ -16,6 +16,8 @@ curl -fsS http://127.0.0.1:3000/api/health
 
 打开 <http://127.0.0.1:3000>。默认使用单用户模式，应用只监听本机，PostgreSQL 16 只在容器网络内访问。首次启动前，可在 Git 忽略的 `.env` 中设置只含字母数字的 `PERSISTENCE_POSTGRES_PASSWORD`。数据库卷初始化后，更换配置值还需要同步更改数据库角色密码。
 
+这台 Mac 的 Colima 配置使用 4 核、9 GiB 内存和 24 GiB 虚拟数据盘。构建遇到 npm 下载慢时，可以在 Compose 命令前加 `NPM_REGISTRY=https://registry.npmmirror.com`。依赖安装仍使用上游的锁文件。
+
 在网页模型设置中连接已有文本模型。在课程模型配置中，为课堂互动选择支持工具调用的模型。先跑通大纲、幻灯片、互动、测验和问答，再按需要启用语音、图片和视频。需要显式控制路由时，用 [openmaic.example.yml](openmaic.example.yml) 创建 `openmaic.yml`，通过 Compose 的本地覆盖文件挂载到 `/app/openmaic.yml`，并在 `.env.local` 中提供该配置引用的环境变量。[官方模型配置](packages/docs/content/docs/configuration.zh-cn.mdx)
 
 日常改代码可以用 Node.js 22.19+ 和 pnpm 10。运行 `pnpm install`、`pnpm db:up`，参照[部署指南](packages/docs/content/docs/deployment.zh-cn.mdx)配置独立的开发数据库，再用 `pnpm dev --port 3001` 运行开发服务器。开发服务读取仓库根目录的 `.env.local`，如需同时运行 Compose 实例，可用仅对开发命令生效的 `DATABASE_URL` 连接开发数据库。
@@ -33,7 +35,7 @@ curl -fsS http://127.0.0.1:3000/api/health
 
 ## 同步上游稳定版
 
-`origin` 指向自己的 GitHub Fork，`upstream` 指向 `THU-MAIC/OpenMAIC`。在工作区干净时从 `codex/local` 开一条升级分支，取 [官方 Releases](https://github.com/THU-MAIC/OpenMAIC/releases) 中审核过的稳定标签。把命令中的 `vX.Y.Z` 替换为目标标签：
+`origin` 指向自己的 GitHub Fork，`upstream` 指向 `THU-MAIC/OpenMAIC`。若从 GitHub 重新克隆，可用 `git remote add upstream https://github.com/THU-MAIC/OpenMAIC.git` 恢复上游配置。在工作区干净时从 `codex/local` 开一条升级分支，取 [官方 Releases](https://github.com/THU-MAIC/OpenMAIC/releases) 中审核过的稳定标签。把命令中的 `vX.Y.Z` 替换为目标标签：
 
 ```sh
 git fetch upstream --prune --tags

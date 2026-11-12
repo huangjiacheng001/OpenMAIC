@@ -86,7 +86,9 @@ COPY . .
 # memory, so it does not by itself prevent a host- or VM-level OOM.
 RUN NODE_OPTIONS=--max-old-space-size=1024 pnpm run build:packages
 
-RUN pnpm build
+# Next.js's production TypeScript worker can exceed Node's default heap in
+# the Linux container. Keep the type check enabled and give it room to finish.
+RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm build
 
 # ---- Stage 4: Runner ----
 FROM node:22-alpine AS runner
