@@ -2,7 +2,28 @@
 
 开发与部署分支是 `codex/local`，起点为 OpenMAIC 稳定版 `v1.4.2`。GitHub Fork 的 `main` 用于跟踪上游开发主线。原项目采用 MIT 许可证，见 [LICENSE](LICENSE)。
 
-## 启动与配置
+## 日常开发
+
+在仓库根目录用 Node.js 22.19+ 和 Corepack 运行。Corepack 按 `package.json` 固定的版本启动 pnpm。
+
+```sh
+# 首次安装或依赖锁文件变化后运行
+corepack pnpm install --frozen-lockfile
+
+# 开发数据库启动一次后，重启开发服务器可以跳过这条命令
+docker --context colima-openmaic compose --env-file .env.development.local \
+  -p openmaic-dev-db -f docker-compose.db.yml up -d --wait postgres
+
+corepack pnpm dev --hostname 127.0.0.1 --port 3001
+```
+
+在 <http://127.0.0.1:3001> 验证改动。开发服务器支持 Next.js Fast Refresh。本机复测发现，当前版本有时不会识别已保存的源码改动。遇到这种情况可重启开发服务器。修改通过 `dist/` 导出的工作区包时，运行 `corepack pnpm --filter <包名> dev` 监听编译（该包有 `dev` 脚本时），或运行 `corepack pnpm build:packages`。修改环境变量或模型配置后重启开发服务器。
+
+本机开发数据库使用独立的 Compose 项目和数据卷，发布到 `127.0.0.1:5432`。Next.js 只在开发模式读取 `.env.development.local`，该文件同时提供开发数据库的密码和连接地址。开发模型配置位于 `.env.development.models.yml`。需要实测 AI 功能时，在开发站的模型设置中接入服务。使用正式站同样的模型时，开发站也需要自己的授权。
+
+在开发站通过相关功能验证后，再运行正式版构建。改动相关的单测可用 `corepack pnpm exec vitest run <测试文件>`。
+
+## 正式版构建
 
 在这台 Mac 上用 `colima start openmaic` 启动已配置的 Docker 虚拟机，然后在仓库根目录执行：
 
@@ -19,8 +40,6 @@ curl -fsS http://127.0.0.1:3000/api/health
 这台 Mac 的 Colima 配置使用 4 核、9 GiB 内存和 24 GiB 虚拟数据盘。构建遇到 npm 下载慢时，可以在 Compose 命令前加 `NPM_REGISTRY=https://registry.npmmirror.com`。依赖安装仍使用上游的锁文件。
 
 在网页模型设置中连接已有文本模型。在课程模型配置中，为课堂互动选择支持工具调用的模型。先跑通大纲、幻灯片、互动、测验和问答，再按需要启用语音、图片和视频。需要显式控制路由时，用 [openmaic.example.yml](openmaic.example.yml) 创建 `openmaic.yml`，通过 Compose 的本地覆盖文件挂载到 `/app/openmaic.yml`，并在 `.env.local` 中提供该配置引用的环境变量。[官方模型配置](packages/docs/content/docs/configuration.zh-cn.mdx)
-
-日常改代码可以用 Node.js 22.19+ 和 pnpm 10。运行 `pnpm install`、`pnpm db:up`，参照[部署指南](packages/docs/content/docs/deployment.zh-cn.mdx)配置独立的开发数据库，再用 `pnpm dev --port 3001` 运行开发服务器。开发服务读取仓库根目录的 `.env.local`，如需同时运行 Compose 实例，可用仅对开发命令生效的 `DATABASE_URL` 连接开发数据库。
 
 ## 二次开发入口
 
@@ -48,7 +67,7 @@ git push -u origin codex/sync-vX.Y.Z
 
 升级前读发行说明，备份 PostgreSQL、应用数据卷和模型实例密钥。建议用独立 Compose 项目、端口和数据库卷验证升级，特别是带数据库迁移的版本。通过后，将升级分支合并到 `codex/local` 并重新构建部署。需要更新 Fork 的上游开发主线时，可在 GitHub 的 `main` 上使用 **Sync fork**。
 
-GitHub 保存源码和提交历史。课程、媒体、模型设置及实例密钥需要另行备份。默认 Compose 使用 `openmaic-postgres` 和 `openmaic-data` 两个命名卷，实际名称带 Compose 项目前缀。日常停机使用 `docker compose stop`。
+GitHub 保存源码和提交历史。课程、媒体、模型设置及实例密钥需要另行备份。默认 Compose 使用 `openmaic-postgres` 和 `openmaic-data` 两个命名卷，实际名称带 Compose 项目前缀。正式站日常停机可用 `docker --context colima-openmaic compose stop`。
 
 ## 使用 ChatGPT 套餐额度
 
