@@ -199,7 +199,8 @@ export function runSnapshot(run: StoredRun): GenerationRunSnapshot {
     state: run.state,
     step: run.step,
     seq: run.seq,
-    input: run.input,
+    input:
+      run.input.format === 'tutor-short' ? { ...run.input, requirement: '问答短课' } : run.input,
     outline: run.outline,
     agents: run.agents,
     stageId: run.stageId,
