@@ -63,6 +63,7 @@ export function useTutor() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             question: exchange.question,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             history,
             photo: photo || recent[previousPhoto]?.photo,
             photoTurn: !photo && previousPhoto >= 0 ? previousPhoto * 2 : undefined,

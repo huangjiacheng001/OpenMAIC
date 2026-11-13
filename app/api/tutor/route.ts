@@ -19,6 +19,7 @@ import {
   type TutorError,
   type TutorEvent,
 } from '@/lib/tutor/protocol';
+import { tutorCalendar } from '@/lib/tutor/calendar';
 import { findMaterial, findWeb, sourceIntent } from '@/lib/tutor/retrieval';
 
 export const runtime = 'nodejs';
@@ -27,6 +28,7 @@ const log = createLogger('FamilyTutor');
 const bodySchema = z
   .object({
     question: z.string().trim().max(MAX_TUTOR_TEXT),
+    timeZone: z.string().trim().max(100).optional(),
     photo: z
       .string()
       .max(MAX_TUTOR_PHOTO)
@@ -64,6 +66,17 @@ function failure(code: TutorError, status: number, headers: Headers) {
   return Response.json({ code }, { status, headers });
 }
 
+function tutorStreamHeaders(headers: Headers) {
+  headers.set('Content-Type', 'application/x-ndjson; charset=utf-8');
+  headers.set('Cache-Control', 'no-store, no-transform');
+  headers.set('X-Accel-Buffering', 'no');
+  return headers;
+}
+
+function encodeTutorEvent(event: TutorEvent) {
+  return JSON.stringify(event) + '\n';
+}
+
 export async function POST(req: NextRequest) {
   return withRequestOwner(req, async (_principal, headers) => {
     if (!req.body) return failure('invalid', 400, headers);
@@ -72,7 +85,19 @@ export async function POST(req: NextRequest) {
     const body = bodySchema.safeParse(raw);
     if (!body.success) return failure('invalid', capped.exceeded() ? 413 : 400, headers);
 
-    const { question, history, photo, photoTurn } = body.data;
+    const { question, history, photo, photoTurn, timeZone } = body.data;
+    const calendar = tutorCalendar(new Date(), timeZone);
+    const directAnswer = (!photo || photoTurn !== undefined) && calendar.answer(question);
+    if (directAnswer) {
+      return new Response(
+        encodeTutorEvent({ type: 'text', delta: directAnswer }) +
+          encodeTutorEvent({ type: 'done' }),
+        {
+          headers: tutorStreamHeaders(headers),
+        },
+      );
+    }
+
     const intent = sourceIntent(question);
     const workspaceId = await requestWorkspaceId(req);
     const slot = await lookupSlot(photo ? 'classroom' : 'llm', workspaceId);
@@ -123,11 +148,10 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const send = (event: TutorEvent) => {
-          if (!cancel.signal.aborted)
-            controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
+          if (!cancel.signal.aborted) controller.enqueue(encoder.encode(encodeTutorEvent(event)));
         };
         try {
-          let system = tutorInstructions;
+          let system = tutorInstructions + '\n' + calendar.systemContext;
           // Follow-up mentions such as “按教材讲” need the topic from the last question.
           const previous = history.findLast((turn) => turn.role === 'user')?.content ?? '';
           if (intent) {
@@ -217,9 +241,6 @@ export async function POST(req: NextRequest) {
         cancel.abort();
       },
     });
-    headers.set('Content-Type', 'application/x-ndjson; charset=utf-8');
-    headers.set('Cache-Control', 'no-store, no-transform');
-    headers.set('X-Accel-Buffering', 'no');
-    return new Response(stream, { headers });
+    return new Response(stream, { headers: tutorStreamHeaders(headers) });
   });
 }
