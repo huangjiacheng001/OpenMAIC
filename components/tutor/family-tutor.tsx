@@ -9,6 +9,15 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { HomeworkPhotoPreview } from './homework-photo-preview';
 import { FamilyHeader, FamilyNav } from './family-shell';
 import { FamilyProfile } from './family-profile';
+import { ShortCourseCard } from './short-course-card';
+import {
+  prepareShortCourse,
+  readShortCourses,
+  shortCourseError,
+  shortCourseIsActive,
+  writeShortCourse,
+} from './short-course-client';
+import { canMakeShortCourse, type ShortCourse } from '@/lib/tutor/short-course';
 import { SaveHomework } from './save-homework';
 import { useFamilySession } from './use-family-session';
 import { familyMessage, familyRead, familyWrite } from './family-client';
@@ -27,6 +36,30 @@ import { TUTOR_ERRORS, useTutor, type Exchange } from './use-tutor';
 import styles from './family-tutor.module.css';
 
 const markdownPlugins = { math: createSafeMathPlugin() };
+function saveGuestConversation(thread: string, turns: HomeworkExchange[]) {
+  try {
+    if (!turns.length) return;
+    sessionStorage.setItem(
+      'tutor-course:' + thread,
+      JSON.stringify(
+        turns.slice(-80).map(({ id, question, answer, problem, sources }) => ({
+          id,
+          question,
+          answer,
+          problem,
+          sources,
+        })),
+      ),
+    );
+  } catch {}
+}
+function loadGuestConversation(thread: string): HomeworkExchange[] | undefined {
+  try {
+    const raw = sessionStorage.getItem('tutor-course:' + thread);
+    return raw ? (JSON.parse(raw) as HomeworkExchange[]) : undefined;
+  } catch {}
+}
+
 function TutorExchange({ exchange, streaming }: { exchange: Exchange; streaming?: boolean }) {
   return (
     <article className={styles.exchange}>
@@ -83,7 +116,13 @@ function TutorExchange({ exchange, streaming }: { exchange: Exchange; streaming?
   );
 }
 
-export function FamilyTutor({ initialThread }: { initialThread?: string }) {
+export function FamilyTutor({
+  initialThread,
+  initialExchange,
+}: {
+  initialThread?: string;
+  initialExchange?: string;
+}) {
   const [draft, setDraft] = useState('');
   const [photo, setPhoto] = useState<string>();
   const [photoPreview, setPhotoPreview] = useState(false);
@@ -110,10 +149,81 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
   const [queuedSave, setQueuedSave] = useState(false);
   const [restorePending, setRestorePending] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [courses, setCourses] = useState<ShortCourse[]>([]);
+  const [courseBusy, setCourseBusy] = useState('');
+  const [courseError, setCourseError] = useState<{ id: string; message: string }>();
+  const courseAction = useRef(false);
+  const restoreTarget = useRef(initialExchange);
   const activeChild = child || session?.child;
   const currentThread = useRef(initialThread);
   const guestExchanges = useRef<Exchange[]>([]);
   const started = useRef(false);
+  const hasActiveCourse = courses.some(shortCourseIsActive);
+
+  useEffect(() => {
+    if (!thread) return;
+    const ctl = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refreshCourses = async () => {
+      try {
+        const result = await readShortCourses(thread, ctl.signal);
+        if (!ctl.signal.aborted) setCourses(result.courses);
+      } catch {
+        // A failed status request leaves the last known card in place.
+      } finally {
+        if (!ctl.signal.aborted && hasActiveCourse) timer = setTimeout(refreshCourses, 1800);
+      }
+    };
+    void refreshCourses();
+    return () => {
+      ctl.abort();
+      clearTimeout(timer);
+    };
+  }, [thread, activeChild?.id, hasActiveCourse]);
+
+  async function generateCourse(exchange: Exchange, retry?: ShortCourse) {
+    if (courseAction.current) return;
+    courseAction.current = true;
+    setCourseBusy(exchange.id);
+    setCourseError(undefined);
+    const id = currentThread.current || crypto.randomUUID();
+    currentThread.current = id;
+    try {
+      if (activeChild) await attachGuestThread(activeChild.id, id);
+      else if (!retry) await prepareShortCourse(id);
+      const payload = retry
+        ? { action: 'retry', runId: retry.id }
+        : {
+            action: 'start',
+            threadId: id,
+            exchangeId: exchange.id,
+            ...(activeChild
+              ? { childId: activeChild.id }
+              : {
+                  guest: exchanges.slice(-20).map(({ id, question, answer, problem }) => ({
+                    id,
+                    question,
+                    answer: answer.slice(0, 12000),
+                    problem,
+                  })),
+                }),
+          };
+      const { course } = await writeShortCourse(payload);
+      if (currentThread.current !== id) return;
+      setThread(id);
+      setCourses((previous) => [
+        ...previous.filter((item) => item.exchangeId !== exchange.id),
+        course,
+      ]);
+      if (!activeChild) saveGuestConversation(id, exchanges);
+    } catch (cause) {
+      if (currentThread.current === id)
+        setCourseError({ id: exchange.id, message: shortCourseError(cause) });
+    } finally {
+      courseAction.current = false;
+      setCourseBusy('');
+    }
+  }
 
   useEffect(() => {
     if (!activeChild?.id) return;
@@ -130,20 +240,25 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
 
   useEffect(() => {
     if (!initialThread || started.current || !session) return;
-    if (!activeChild) {
-      currentThread.current = undefined;
-      setThread(undefined);
-      setOpening(false);
-      return;
-    }
     const ctl = new AbortController();
-    familyRead<{ exchanges: HomeworkExchange[] }>(
-      'thread',
-      { child: activeChild.id, id: initialThread },
-      ctl.signal,
-    )
+    const restoreRequest = activeChild
+      ? familyRead<{ exchanges: HomeworkExchange[] }>(
+          'thread',
+          { child: activeChild.id, id: initialThread },
+          ctl.signal,
+        )
+      : readShortCourses(initialThread, ctl.signal, true).then(({ exchanges }) => {
+          const turns = new Map(
+            (exchanges ?? []).map((exchange) => [exchange.id, exchange] as const),
+          );
+          for (const exchange of loadGuestConversation(initialThread) ?? [])
+            turns.set(exchange.id, exchange);
+          return { exchanges: [...turns.values()] };
+        });
+    restoreRequest
       .then((result) => {
         if (ctl.signal.aborted) return;
+        if (!result.exchanges.length) throw new Error('Conversation unavailable');
         started.current = true;
         restore(result.exchanges);
       })
@@ -161,6 +276,11 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
     return () => ctl.abort();
   }, [activeChild, initialThread, restore, session]);
 
+  useEffect(() => {
+    if (!activeChild && thread && courses.length && exchanges.length)
+      saveGuestConversation(thread, exchanges);
+  }, [activeChild, thread, courses.length, exchanges]);
+
   async function adoptChild(selected: ChildProfile) {
     const previous = activeChild?.id;
     const snapshot = !previous ? exchanges : [];
@@ -171,6 +291,8 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
       currentThread.current = undefined;
       setThread(undefined);
       setHistory([]);
+      setCourses([]);
+      setCourseError(undefined);
     }
     setChild(selected);
     setProfileOpen(false);
@@ -284,8 +406,17 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
   }, [recordingBusy, voice, send, photo]);
 
   useEffect(() => {
+    if (!opening && restoreTarget.current && feed.current) {
+      const target = document.getElementById('tutor-turn-' + restoreTarget.current);
+      if (target) {
+        restoreTarget.current = undefined;
+        keepAtBottom.current = false;
+        target.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+    }
     if (feed.current && keepAtBottom.current) feed.current.scrollTop = feed.current.scrollHeight;
-  }, [exchanges, pending, status]);
+  }, [exchanges, pending, status, opening]);
 
   async function addPhoto(file?: File, preview = false) {
     if (!file || pending || voiceIntent.current || preparingPhoto.current) return;
@@ -383,6 +514,8 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
               currentThread.current = undefined;
               guestExchanges.current = [];
               setThread(undefined);
+              setCourses([]);
+              setCourseError(undefined);
               if (initialThread) window.history.replaceState(null, '', '/');
             }}
           >
@@ -437,9 +570,24 @@ export function FamilyTutor({ initialThread }: { initialThread?: string }) {
                 正在打开原问答…
               </p>
             )}
-            {exchanges.map((exchange) => (
-              <TutorExchange key={exchange.id} exchange={exchange} />
-            ))}
+            {exchanges.map((exchange, index) => {
+              const course = courses.find((item) => item.exchangeId === exchange.id);
+              const available = exchanges.length - index <= 20 && canMakeShortCourse(exchange);
+              return (
+                <div key={exchange.id} id={'tutor-turn-' + exchange.id}>
+                  <TutorExchange exchange={exchange} />
+                  {(course || available) && (
+                    <ShortCourseCard
+                      course={course}
+                      busy={courseBusy === exchange.id}
+                      error={courseError?.id === exchange.id ? courseError.message : undefined}
+                      onStart={() => void generateCourse(exchange)}
+                      onRetry={() => void generateCourse(exchange, course)}
+                    />
+                  )}
+                </div>
+              );
+            })}
             {pending && <TutorExchange exchange={pending} streaming />}
             {pending && !pending.answer && (
               <p role="status" className={styles.progress}>

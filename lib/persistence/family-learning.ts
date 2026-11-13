@@ -77,6 +77,23 @@ CREATE TABLE family_guardian_failures (
   count INTEGER NOT NULL, window_start TIMESTAMPTZ NOT NULL DEFAULT now()
 );`,
       },
+      {
+        version: 2,
+        name: 'tutor-short-courses',
+        transaction: true,
+        up: `
+CREATE TABLE tutor_short_courses (
+  owner_id TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  thread_id UUID NOT NULL,
+  exchange_id UUID NOT NULL,
+  run_id TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  guest_exchanges JSONB,
+  PRIMARY KEY (owner_id, scope, thread_id, exchange_id)
+);
+CREATE INDEX tutor_short_courses_thread ON tutor_short_courses(owner_id,scope,thread_id);`,
+      },
     ],
   });
 }

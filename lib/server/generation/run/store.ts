@@ -510,6 +510,11 @@ async function applyPatch(
 }
 
 export interface CreateRunOptions {
+  /** A tutor course's source, attached in the same transaction as the run. */
+  link?: {
+    find: (tx: Queryable) => Promise<string | undefined>;
+    attach: (tx: Queryable, runId: string) => Promise<void>;
+  };
   maxActiveRunsPerOwner: number;
   /** Runs one owner may have waiting for outline confirmation at once. */
   maxWaitingRunsPerOwner: number;
@@ -541,6 +546,7 @@ async function enforceActiveRunLimitIn(
   tx: Queryable,
   ownerId: string,
   limit: number,
+  existing?: () => Promise<boolean>,
 ): Promise<string> {
   // Counted for the owner the runs belong to now: every owner claimed into it
   // shares its limit, and its lock.
@@ -548,6 +554,7 @@ async function enforceActiveRunLimitIn(
   await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
     `openmaic.generation-runs.owner:${owner}`,
   ]);
+  if (await existing?.()) return owner;
   const active = await tx.query<{ n: string | number }>(
     `SELECT count(*) AS n FROM generation_runs
       WHERE ${OWNED_BY('$1')} AND state = ANY($2::text[])`,
@@ -583,8 +590,29 @@ export async function createGenerationRun(
   options: CreateRunOptions,
 ): Promise<StoredRun> {
   const { withTransaction } = await provider();
+  let reused = false;
   const run = await withTransaction(async (tx) => {
-    const owner = await enforceActiveRunLimitIn(tx, ownerId, options.maxActiveRunsPerOwner);
+    let existing: StoredRun | undefined;
+    const owner = await enforceActiveRunLimitIn(
+      tx,
+      ownerId,
+      options.maxActiveRunsPerOwner,
+      options.link &&
+        (async () => {
+          const id = await options.link!.find(tx);
+          if (!id) return false;
+          const { rows } = await tx.query<RunRow>(
+            `SELECT ${RUN_COLUMNS} FROM generation_runs WHERE id=$1 AND owner_id=$2 AND state<>'ended'`,
+            [id, ownerId],
+          );
+          if (rows[0]) existing = storedRun(rows[0]);
+          return Boolean(existing);
+        }),
+    );
+    if (existing) {
+      reused = true;
+      return existing;
+    }
     const waiting = await tx.query<{ n: string | number }>(
       `SELECT count(*) AS n FROM generation_runs
         WHERE ${OWNED_BY('$1')} AND state = 'awaiting_outline_confirmation'`,
@@ -605,6 +633,7 @@ export async function createGenerationRun(
         attributes === undefined ? null : encodeJson(attributes, 'run attributes'),
       ],
     );
+    await options.link?.attach(tx, id);
     await insertEvents(tx, id, [{ type: 'state', data: { state: 'preparing', step: null } }]);
     await notifyOwner(tx, ownerId);
     const row = await tx.query<RunRow>(`SELECT ${RUN_COLUMNS} FROM generation_runs WHERE id = $1`, [
@@ -612,15 +641,16 @@ export async function createGenerationRun(
     ]);
     return storedRun(row.rows[0]!);
   });
-  reportGenerationRunEvent(
-    {
-      type: 'started',
-      runId: run.id,
-      ownerId: run.ownerId,
-      attributes: run.hostAttributes ?? {},
-    },
-    () => currentOwnerOf(run.ownerId),
-  );
+  if (!reused)
+    reportGenerationRunEvent(
+      {
+        type: 'started',
+        runId: run.id,
+        ownerId: run.ownerId,
+        attributes: run.hostAttributes ?? {},
+      },
+      () => currentOwnerOf(run.ownerId),
+    );
   return run;
 }
 

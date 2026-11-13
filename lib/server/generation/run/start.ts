@@ -30,6 +30,7 @@ import {
   type StoredRun,
 } from './store';
 import type { GenerationRunInput } from './types';
+import type { CreateRunOptions } from './store';
 
 export const GENERATION_MODEL_SLOTS: readonly SlotId[] = [
   ...MODEL_SLOTS.filter((slot) => slot.id.startsWith('course.')).map((slot) => slot.id as SlotId),
@@ -79,6 +80,7 @@ export interface StartRequest {
   principal: OwnerPrincipal;
   request: Request;
   origin: GenerationStartOrigin;
+  link?: CreateRunOptions['link'];
 }
 
 /**
@@ -104,6 +106,7 @@ export async function startGenerationRun(
 
   const config = generationRunConfig();
   const run = await createGenerationRun(ownerId, input, {
+    ...(start?.link && { link: start.link }),
     maxActiveRunsPerOwner: config.maxActiveRunsPerOwner,
     maxWaitingRunsPerOwner: config.maxWaitingRunsPerOwner,
     // Asked only when a host registered it: a start is unchanged without.

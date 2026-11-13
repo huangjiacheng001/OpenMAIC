@@ -26,6 +26,7 @@
  * also applies its viewer-specific edit access.
  */
 
+import { TutorCourseOrigin } from './tutor-course-origin';
 import { Stage } from '@/components/stage';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
@@ -317,6 +318,7 @@ function ClassroomSurfaceContent({
               : 'h-screen flex flex-col overflow-hidden'
           }
         >
+          {variant === 'page' && <TutorCourseOrigin key={classroomId} stageId={classroomId} />}
           {view === 'loading' ? (
             <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
               <div className="flex flex-col items-center gap-3 text-muted-foreground">

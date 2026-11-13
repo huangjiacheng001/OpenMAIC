@@ -43,6 +43,7 @@
 import { ModelAuthorizationError } from '@/lib/server/model-config/model-authorization';
 import { audioFailureKind } from '@/lib/audio/provider-error';
 import { isAbortError } from '@openmaic/generation';
+import { assembleTutorShortScene, tutorShortOutlines } from './tutor-outline';
 import type { Queryable } from '@openmaic/storage/document/pg';
 
 import { pickNarratorAgent, resolveServerAgentVoiceOptions } from '@/lib/audio/agent-voice-options';
@@ -634,6 +635,8 @@ async function executeClaimedRun(
       }
 
       case 'research': {
+        if (input.format === 'tutor-short')
+          return done({ webSearch: false } satisfies ResearchOutput);
         const pdfText = output<MaterialOutput>('material-analysis')?.pdfText;
         const result = await withDeadline(
           stepId,
@@ -715,6 +718,16 @@ async function executeClaimedRun(
         const index = step.sceneIndex;
         const { outlines, languageDirective } = outline();
         const content = output<SceneContentResult>(sceneStepId(index, 'content'))!;
+        const effectiveOutline = content.effectiveOutline || outlines[index]!;
+        if (input.format === 'tutor-short') {
+          const result = assembleTutorShortScene(
+            effectiveOutline,
+            content.content,
+            agents().stage.id,
+          );
+          assertValidScene(result.scene, stepId);
+          return done(result);
+        }
         const userProfile = learnerProfileText(input);
         const result = await withRouteRetry(
           () =>
@@ -722,7 +735,7 @@ async function executeClaimedRun(
               const generated = await services.sceneActions(
                 owner,
                 {
-                  outline: content.effectiveOutline || outlines[index]!,
+                  outline: effectiveOutline,
                   allOutlines: outlines,
                   // The route receives the content as JSON; so does this step.
                   content: content.content as SceneActionsInput['content'],
@@ -819,6 +832,10 @@ async function executeClaimedRun(
           owner,
           {
             requirements: runRequirements(input, research?.webSearch === true),
+            ...(input.format === 'tutor-short' && {
+              allowImageGeneration: false,
+              allowVideoGeneration: false,
+            }),
             ...(pdfText ? { pdfText } : {}),
             ...materialImages(),
             ...(research?.context ? { researchContext: research.context } : {}),
@@ -834,7 +851,11 @@ async function executeClaimedRun(
     // as generated is always confirmable unchanged.
     const normalized = normalizeSceneOutlines(result.outlines);
     if (!normalized.ok) throw new Error(`The generated outline is unusable: ${normalized.message}`);
-    result = { ...result, outlines: normalized.value };
+    result = {
+      ...result,
+      outlines:
+        input.format === 'tutor-short' ? tutorShortOutlines(normalized.value) : normalized.value,
+    };
     const confirmed: GenerationRunOutline = {
       outlines: result.outlines,
       languageDirective: result.languageDirective,

@@ -78,6 +78,8 @@ export type GenerationRunAgents =
  */
 export interface GenerationRunInput {
   requirement: string;
+  /** Only the tutor endpoint sets this constrained course format. */
+  format?: 'tutor-short';
   /** Owner-library uploads (`POST /api/materials`), in order. */
   materialIds: string[];
   interactive: boolean;
