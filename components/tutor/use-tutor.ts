@@ -1,3 +1,4 @@
+import { createTutorId } from '@/lib/tutor/client-id';
 import type { HomeworkExchange } from '@/lib/tutor/family';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -42,14 +43,14 @@ export function useTutor() {
     async (question: string, photo?: string, context?: { childId: string; threadId: string }) => {
       if (active.current || (!question.trim() && !photo)) return false;
       const controller = new AbortController();
-      active.current = controller;
       let exchange: Exchange = {
-        id: globalThis.crypto.randomUUID(),
+        id: createTutorId(),
         question: question.trim(),
         photo,
         answer: '',
         sources: [],
       };
+      active.current = controller;
       setPending(exchange);
       setError(undefined);
       setStatus('answering');

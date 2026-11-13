@@ -1,5 +1,6 @@
 'use client';
 
+import { createTutorId } from '@/lib/tutor/client-id';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, CircleHelp } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -107,7 +108,7 @@ export function GroupPractice({ inDialog = false }: { inDialog?: boolean }) {
     }
 
     submitted.current = true;
-    const attempt = { id: crypto.randomUUID(), exercise, answer, submittedAt: Date.now() };
+    const attempt = { id: createTutorId(), exercise, answer, submittedAt: Date.now() };
     setError('');
     setResult(attempt);
     try {

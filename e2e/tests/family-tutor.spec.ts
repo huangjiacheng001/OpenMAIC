@@ -1,4 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function openTutor(page: Page) {
+  const session = page.waitForResponse((response) =>
+    response.url().endsWith('/api/family?view=session'),
+  );
+  await page.goto('/');
+  await session;
+}
 
 const events = [
   { type: 'status', status: 'answering' },
@@ -6,9 +14,11 @@ const events = [
   { type: 'done' },
 ];
 
-test('one composer accepts text, retains failed input and sends a photo follow-up', async ({
-  page,
-}) => {
+test('one composer sends on HTTP without secure-context browser APIs', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'isSecureContext', { value: false });
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined });
+  });
   const sent: Array<{ question: string; photo?: string; photoTurn?: number }> = [];
   await page.route('**/api/tutor', async (route) => {
     sent.push(route.request().postDataJSON());
@@ -21,8 +31,9 @@ test('one composer accepts text, retains failed input and sends a photo follow-u
       body: events.map((event) => JSON.stringify(event)).join('\n') + '\n',
     });
   });
-  await page.goto('/');
+  await openTutor(page);
   const question = page.getByRole('textbox', { name: '输入你的问题' });
+  await expect(page.getByRole('button', { name: '语音', exact: true })).toHaveCount(0);
   await question.fill('怎么按 5 个一组数数？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(page.getByRole('main').getByRole('alert')).toContainText('可以再试一次');
@@ -40,9 +51,15 @@ test('one composer accepts text, retains failed input and sends a photo follow-u
     ),
   });
   await expect(page.getByAltText('待发送的照片')).toBeVisible();
-  await page.getByRole('button', { name: '发送照片', exact: true }).click();
+  await question.fill('看看这张图里的题');
+  await page.getByRole('button', { name: '打开照片预览' }).click();
+  await page
+    .getByRole('dialog', { name: '照片预览' })
+    .getByRole('button', { name: '发送', exact: true })
+    .click();
   await expect(page.getByAltText('本轮题目照片')).toBeVisible();
   await expect(page.getByAltText('待发送的照片')).toHaveCount(0);
+  expect(sent[2].question).toBe('看看这张图里的题');
   expect(sent[2].photo).toMatch(/^data:image\/jpeg;base64,/);
   await question.fill('那 15 呢？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
@@ -73,7 +90,7 @@ test('stopping a response keeps the draft and permits a new send', async ({ page
       body: events.map((event) => JSON.stringify(event)).join('\n') + '\n',
     });
   });
-  await page.goto('/');
+  await openTutor(page);
   const question = page.getByRole('textbox', { name: '输入你的问题' });
   await question.fill('帮我想想分组的方法');
   await page.getByRole('button', { name: '发送', exact: true }).click();
@@ -126,7 +143,7 @@ test('voice finish sends once and cancel ignores stale transcription', async ({ 
       body: events.map((event) => JSON.stringify(event)).join('\n') + '\n',
     });
   });
-  await page.goto('/');
+  await openTutor(page);
   await page.getByRole('button', { name: '语音', exact: true }).click();
   const finish = page.getByRole('button', { name: '说完了' });
   await expect(finish).toBeEnabled();

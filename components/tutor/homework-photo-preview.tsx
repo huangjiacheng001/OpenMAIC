@@ -190,9 +190,9 @@ export function HomeworkPhotoPreview({
             </>
           )}
         </div>
-        <Button size="touch" disabled={busy || cropping} onClick={onSend}>
-          <ArrowUp size={18} />
-          发送照片
+        <Button type="button" size="touch" disabled={busy || cropping} onClick={onSend}>
+          <ArrowUp size={18} aria-hidden="true" />
+          发送
         </Button>
       </DialogContent>
     </Dialog>

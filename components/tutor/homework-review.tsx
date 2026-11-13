@@ -2,6 +2,7 @@
 
 import { CardSection } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { createTutorId } from '@/lib/tutor/client-id';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -55,7 +56,7 @@ function ReviewDetail({ child, id }: { child: ChildProfile; id: string }) {
         ? { id: last.id, answer: last.answer, self }
         : pending.current?.answer === answer.trim()
           ? pending.current
-          : (pending.current = { id: crypto.randomUUID(), answer: answer.trim() });
+          : (pending.current = { id: createTutorId(), answer: answer.trim() });
       const result = await familyWrite<{ item: ReviewItem }>('attempt', {
         childId: child.id,
         itemId: id,

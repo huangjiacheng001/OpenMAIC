@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { ClipboardEvent, FormEvent, KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { ArrowUp, Camera, ImagePlus, Mic, Plus, Square, X } from 'lucide-react';
@@ -31,11 +31,16 @@ import familyStyles from './family-workspace.module.css';
 import { createSafeMathPlugin } from '@/lib/markdown/safe-math-plugin';
 import { useAudioRecorder, ASR_NOT_CONFIGURED_MESSAGE } from '@/lib/hooks/use-audio-recorder';
 import { MAX_TUTOR_TEXT } from '@/lib/tutor/protocol';
+import { createTutorId } from '@/lib/tutor/client-id';
 import { prepareTutorPhoto } from './photo';
 import { TUTOR_ERRORS, useTutor, type Exchange } from './use-tutor';
 import styles from './family-tutor.module.css';
 
 const markdownPlugins = { math: createSafeMathPlugin() };
+const subscribeToSecureContext = () => () => {};
+const getSecureContext = () => window.isSecureContext;
+const getServerSecureContext = () => false;
+
 function saveGuestConversation(thread: string, turns: HomeworkExchange[]) {
   try {
     if (!turns.length) return;
@@ -130,6 +135,11 @@ export function FamilyTutor({
   const [inputError, setInputError] = useState('');
   const [voice, setVoice] = useState<'listening' | 'finishing'>();
   const [voiceText, setVoiceText] = useState('');
+  const voiceAllowed = useSyncExternalStore(
+    subscribeToSecureContext,
+    getSecureContext,
+    getServerSecureContext,
+  );
   const voiceIntent = useRef<'listening' | 'finishing' | undefined>(undefined);
   const voiceBase = useRef('');
   const transcript = useRef('');
@@ -186,7 +196,7 @@ export function FamilyTutor({
     courseAction.current = true;
     setCourseBusy(exchange.id);
     setCourseError(undefined);
-    const id = currentThread.current || crypto.randomUUID();
+    const id = currentThread.current || createTutorId();
     currentThread.current = id;
     try {
       if (activeChild) await attachGuestThread(activeChild.id, id);
@@ -299,7 +309,7 @@ export function FamilyTutor({
     if (snapshot.length) {
       setRestorePending(true);
       guestExchanges.current = snapshot;
-      const id = currentThread.current || crypto.randomUUID();
+      const id = currentThread.current || createTutorId();
       currentThread.current = id;
       setThread(id);
       try {
@@ -369,7 +379,7 @@ export function FamilyTutor({
       keepAtBottom.current = true;
       let context;
       if (activeChild) {
-        const id = currentThread.current || crypto.randomUUID();
+        const id = currentThread.current || createTutorId();
         currentThread.current = id;
         setThread(id);
         try {
@@ -445,7 +455,7 @@ export function FamilyTutor({
   }
 
   function startVoice() {
-    if (voiceIntent.current || pending || preparingPhoto.current) return;
+    if (!voiceAllowed || voiceIntent.current || pending || preparingPhoto.current) return;
     voiceBase.current = draft;
     transcript.current = '';
     voiceIntent.current = 'listening';
@@ -705,7 +715,9 @@ export function FamilyTutor({
                   ? '也可以写下你卡在哪里…'
                   : chat
                     ? '继续问…'
-                    : '在这里问问题，也可以发照片或语音…'
+                    : voiceAllowed
+                      ? '在这里问问题，也可以发照片或语音…'
+                      : '在这里问问题，也可以发照片…'
               }
             />
           )}
@@ -734,14 +746,16 @@ export function FamilyTutor({
                     <ImagePlus size={19} />
                     图片
                   </button>
-                  <button
-                    type="button"
-                    onClick={startVoice}
-                    disabled={Boolean(pending) || loadingPhoto}
-                  >
-                    <Mic size={19} />
-                    语音
-                  </button>
+                  {voiceAllowed && (
+                    <button
+                      type="button"
+                      onClick={startVoice}
+                      disabled={Boolean(pending) || loadingPhoto}
+                    >
+                      <Mic size={19} />
+                      语音
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -769,15 +783,9 @@ export function FamilyTutor({
                 <Square size={17} />
               </button>
             ) : (
-              <button
-                key="send"
-                type="submit"
-                className={styles.send}
-                disabled={!canSend}
-                aria-label={photo ? '发送照片' : '发送'}
-              >
-                <ArrowUp size={21} />
-                {photo && <span>发送照片</span>}
+              <button key="send" type="submit" className={styles.send} disabled={!canSend}>
+                <ArrowUp size={21} aria-hidden="true" />
+                发送
               </button>
             )}
           </div>
