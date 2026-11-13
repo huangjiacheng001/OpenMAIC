@@ -89,4 +89,26 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardAction, CardDescription, CardContent };
+function CardSection({ className, ...props }: React.ComponentProps<'section'>) {
+  return (
+    <section
+      data-slot="card-section"
+      className={cn(
+        'grid min-w-0 gap-2.5 rounded-xl border bg-card p-3.5 text-card-foreground [&>form]:grid [&>form]:gap-2.5',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardAction,
+  CardDescription,
+  CardContent,
+  CardSection,
+};

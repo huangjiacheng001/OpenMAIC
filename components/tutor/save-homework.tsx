@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Bookmark } from 'lucide-react';
@@ -67,18 +68,24 @@ export function SaveHomework({
       <div className={styles.success} role="status">
         <div className={styles.statusLine}>
           已存到{child?.name}的错题本{' '}
-          <Link href="/practice" className={styles.textButton}>
-            去错题本 →
-          </Link>
+          <Button asChild size="touch" variant="ghost" className="text-primary-text">
+            <Link href="/practice">去错题本 →</Link>
+          </Button>
         </div>
       </div>
     );
   if (!child)
     return (
-      <button type="button" className={styles.textButton} onClick={onSignIn}>
+      <Button
+        type="button"
+        size="touch"
+        variant="ghost"
+        className="text-primary-text"
+        onClick={onSignIn}
+      >
         <Bookmark size={17} />
         存为错题
-      </button>
+      </Button>
     );
   return (
     <Dialog
@@ -88,10 +95,10 @@ export function SaveHomework({
       }}
     >
       <DialogTrigger asChild>
-        <button type="button" className={styles.textButton}>
+        <Button type="button" size="touch" variant="ghost" className="text-primary-text">
           <Bookmark size={17} />
           存为错题
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className={styles.sheet}>
         <DialogTitle>存为错题</DialogTitle>
@@ -127,9 +134,9 @@ export function SaveHomework({
               {error} 对话和题干仍在。
             </p>
           )}
-          <button className={styles.button} disabled={saving || !problem.trim()}>
+          <Button size="touch" disabled={saving || !problem.trim()}>
             {saving ? '正在保存…' : error ? '重试保存' : '确认保存'}
-          </button>
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

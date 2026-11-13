@@ -1,5 +1,7 @@
 'use client';
 
+import { CardSection } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, CircleCheck, LockKeyhole, RotateCcw } from 'lucide-react';
@@ -120,15 +122,21 @@ export function FamilyProfile({
     <p className={styles.alert} role="alert">
       {error || sessionError}
       {sessionError && (
-        <button type="button" className={styles.textButton} onClick={() => void refresh()}>
+        <Button
+          type="button"
+          size="touch"
+          variant="ghost"
+          className="text-primary-text"
+          onClick={() => void refresh()}
+        >
           重试
-        </button>
+        </Button>
       )}
     </p>
   );
 
   const login = (
-    <section className={styles.panel}>
+    <CardSection>
       <h2>用孩子登录码继续</h2>
       <p className={styles.muted}>在另一台设备打开同一个 OpenMAIC 地址，输入家长给你的登录码。</p>
       <form
@@ -147,23 +155,24 @@ export function FamilyProfile({
           孩子登录码
           <input name="code" required maxLength={64} autoCapitalize="none" autoComplete="off" />
         </label>
-        <button className={styles.button} disabled={busy}>
+        <Button size="touch" disabled={busy}>
           登录孩子档案
-        </button>
+        </Button>
       </form>
-    </section>
+    </CardSection>
   );
 
   const codePanel = loginCode && (
-    <section className={styles.panel}>
+    <CardSection>
       <h2>{loginCode.name}的登录码</h2>
       <p className={styles.muted}>
         在另一台设备打开同一个 OpenMAIC 地址并输入此码。请先保存登录码。
       </p>
       <code className={styles.code}>{loginCode.code}</code>
-      <button
+      <Button
         type="button"
-        className={styles.secondary}
+        size="touch"
+        variant="outline"
         onClick={() => {
           void navigator.clipboard
             ?.writeText(loginCode.code)
@@ -172,10 +181,10 @@ export function FamilyProfile({
         }}
       >
         {copied ? '已复制' : '复制登录码'}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className={styles.button}
+        size="touch"
         onClick={() => {
           if (embedded && session?.child) selectChild(session.child);
           else if (session?.child) window.location.assign('/');
@@ -186,12 +195,12 @@ export function FamilyProfile({
         }}
       >
         {embedded ? '回到讲解' : '去问答'}
-      </button>
-    </section>
+      </Button>
+    </CardSection>
   );
 
   const childList = session?.guardian && (
-    <section className={styles.panel}>
+    <CardSection>
       <h2>孩子档案</h2>
       {children.length ? (
         <div className={styles.rows}>
@@ -249,15 +258,15 @@ export function FamilyProfile({
           年级
           <input name="grade" maxLength={24} placeholder="例如 小学五年级" />
         </label>
-        <button className={styles.button} disabled={busy}>
+        <Button size="touch" disabled={busy}>
           添加孩子
-        </button>
+        </Button>
       </form>
-    </section>
+    </CardSection>
   );
 
   const gate = session && !session.guardian && (
-    <section className={styles.panel}>
+    <CardSection>
       <h2>{session.needsSetup ? '设置家长密码' : '请输入家长密码'}</h2>
       <p className={styles.muted}>
         {session.needsSetup
@@ -287,11 +296,11 @@ export function FamilyProfile({
             autoComplete={session.needsSetup ? 'new-password' : 'current-password'}
           />
         </label>
-        <button className={styles.button} disabled={busy}>
+        <Button size="touch" disabled={busy}>
           {session.needsSetup ? '设置并继续' : '验证并查看'}
-        </button>
+        </Button>
       </form>
-    </section>
+    </CardSection>
   );
 
   let content;
@@ -311,20 +320,21 @@ export function FamilyProfile({
           </div>
         )}
         {session.child && (
-          <section className={styles.card}>
+          <CardSection>
             <h2>当前使用 · {session.child.name}</h2>
             <p className={styles.muted}>{session.child.grade}</p>
             {chooseChild ? (
-              <button className={styles.button} onClick={() => chooseChild(session.child!)}>
+              <Button size="touch" onClick={() => chooseChild(session.child!)}>
                 用这个档案保存
-              </button>
+              </Button>
             ) : (
               <div className={styles.actions}>
-                <Link href="/" className={styles.button}>
-                  回到问答
-                </Link>
-                <button
-                  className={styles.secondary}
+                <Button asChild size="touch">
+                  <Link href="/">回到问答</Link>
+                </Button>
+                <Button
+                  size="touch"
+                  variant="outline"
                   disabled={busy}
                   onClick={() =>
                     void perform(async () => {
@@ -334,16 +344,17 @@ export function FamilyProfile({
                   }
                 >
                   退出孩子档案
-                </button>
+                </Button>
               </div>
             )}
-          </section>
+          </CardSection>
         )}
         {codePanel}
         {login}
         {childList}
-        <button
-          className={styles.secondary}
+        <Button
+          size="touch"
+          variant="outline"
           onClick={() => {
             setView('records');
             setError('');
@@ -351,35 +362,37 @@ export function FamilyProfile({
         >
           <LockKeyhole size={16} />
           进入家长记录
-        </button>
+        </Button>
       </>
     );
   else if (!session.guardian)
     content = (
       <>
         {gate}
-        <button
-          className={styles.textButton}
+        <Button
+          size="touch"
+          variant="ghost"
+          className="text-primary-text"
           onClick={() => {
             setView('profiles');
             setError('');
           }}
         >
           返回家庭档案
-        </button>
+        </Button>
       </>
     );
   else if (detail)
     content = (
       <>
-        <button className={styles.textButton} onClick={backToRecords}>
+        <Button size="touch" variant="ghost" className="text-primary-text" onClick={backToRecords}>
           ← 返回家庭记录
-        </button>
+        </Button>
         <div>
           <p className={styles.eyebrow}>{current?.name} · 作答详情</p>
           <h1>{detail.problem}</h1>
         </div>
-        <section className={styles.card}>
+        <CardSection>
           <h2>每次作答</h2>
           {!detail.attemptsList.length && <p className={styles.muted}>这道题还没有重做记录。</p>}
           {detail.attemptsList.map((attempt) => (
@@ -392,7 +405,7 @@ export function FamilyProfile({
               </div>
             </div>
           ))}
-        </section>
+        </CardSection>
         {detail.photo ? (
           <img src={detail.photo} className={styles.photo} alt="保存的作业照片" />
         ) : (
@@ -441,7 +454,7 @@ export function FamilyProfile({
                 <strong>{activity.counts.done}</strong>已完成
               </div>
             </div>
-            <section className={styles.card}>
+            <CardSection>
               <div className={styles.statusLine}>
                 <h2>近期学习</h2>
                 <span className={styles.muted}>北京时间</span>
@@ -473,20 +486,27 @@ export function FamilyProfile({
               ) : (
                 <p className={styles.muted}>{current?.name}还没有作答记录。</p>
               )}
-            </section>
+            </CardSection>
           </>
         )}
         <div className={styles.actions}>
-          <button className={styles.secondary} onClick={() => setView('profiles')}>
+          <Button size="touch" variant="outline" onClick={() => setView('profiles')}>
             管理孩子档案
-          </button>
+          </Button>
           {current && (
-            <button className={styles.textButton} onClick={() => setManage(!manage)}>
+            <Button
+              size="touch"
+              variant="ghost"
+              className="text-primary-text"
+              onClick={() => setManage(!manage)}
+            >
               管理登录码
-            </button>
+            </Button>
           )}
-          <button
-            className={styles.textButton}
+          <Button
+            size="touch"
+            variant="ghost"
+            className="text-primary-text"
             disabled={busy}
             onClick={() =>
               void perform(async () => {
@@ -500,15 +520,16 @@ export function FamilyProfile({
             }
           >
             退出家长视图
-          </button>
+          </Button>
         </div>
         {manage && current && (
-          <section className={styles.card}>
+          <CardSection>
             <p className={styles.muted}>
               更新{current.name}的登录码会让该孩子在现有设备上退出，作答记录会保留。
             </p>
-            <button
-              className={styles.secondary}
+            <Button
+              size="touch"
+              variant="outline"
               disabled={busy}
               onClick={() =>
                 void perform(async () => {
@@ -524,8 +545,8 @@ export function FamilyProfile({
             >
               <RotateCcw size={16} />
               更新登录码
-            </button>
-          </section>
+            </Button>
+          </CardSection>
         )}
       </>
     );

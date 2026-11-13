@@ -1,16 +1,11 @@
 .shell {
-  --tutor-ink: #222c25;
-  --tutor-muted: #5e6b61;
-  --tutor-green: #255e43;
-  --tutor-line: #dbe4d9;
   display: flex;
   flex-direction: column;
   height: 100dvh;
   min-height: 0;
   overflow: auto;
-  color-scheme: light;
-  background: #f6f8f2;
-  color: var(--tutor-ink);
+  background: var(--workspace);
+  color: var(--foreground);
 }
 
 .header {
@@ -40,8 +35,8 @@
 .heroIcon {
   display: grid;
   place-items: center;
-  color: var(--tutor-green);
-  background: #e5eee0;
+  color: var(--primary-text);
+  background: var(--primary-soft);
 }
 .brand > span {
   width: 36px;
@@ -50,7 +45,7 @@
 }
 .nav a,
 .nav button {
-  border: 1px solid var(--tutor-line);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 8px 12px;
   white-space: nowrap;
@@ -59,7 +54,7 @@
 }
 .nav a:hover,
 .nav button:hover {
-  background: #e7eee3;
+  background: var(--primary-soft);
 }
 
 .hero {
@@ -80,7 +75,7 @@
   line-height: 1.2;
 }
 .hero p {
-  color: var(--tutor-muted);
+  color: var(--muted-foreground);
   font-size: clamp(14px, 2vw, 17px);
   margin-top: 11px;
 }
@@ -92,21 +87,21 @@
   margin-inline: auto;
 }
 .composer {
-  background: #fff;
-  border: 1px solid var(--tutor-line);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 13px;
-  box-shadow: 0 8px 28px #223b2910;
+  box-shadow: var(--shadow-surface);
 }
 .composer:focus-within {
-  border-color: #8aa891;
+  border-color: var(--primary-edge);
 }
 .composer textarea {
   width: 100%;
   resize: none;
   outline: none;
   padding: 7px 8px;
-  color: var(--tutor-ink);
+  color: var(--foreground);
   font-size: 16px;
   line-height: 1.5;
   field-sizing: content;
@@ -117,7 +112,7 @@
   min-height: 85px;
 }
 .composer textarea::placeholder {
-  color: #667369;
+  color: var(--muted-foreground);
 }
 .toolbar,
 .attachments {
@@ -141,12 +136,12 @@
   min-height: 42px;
   border-radius: 10px;
   padding: 0 10px;
-  color: #365441;
+  color: var(--foreground);
   font-size: 13px;
 }
 .attachments button:hover,
 .followups button:hover {
-  background: #eef3eb;
+  background: var(--muted);
 }
 .send,
 .finish {
@@ -154,8 +149,8 @@
   height: 43px;
   padding-inline: 12px;
   border-radius: 13px;
-  background: var(--tutor-green);
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 .finish {
   font-size: 14px;
@@ -163,8 +158,8 @@
 }
 .send:disabled,
 .finish:disabled {
-  background: #e4ece3;
-  color: #506856;
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 .preview {
   position: relative;
@@ -181,9 +176,9 @@
   position: absolute;
   top: -5px;
   right: -8px;
-  background: #fff;
-  color: #304437;
-  border: 1px solid var(--tutor-line);
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 50%;
   padding: 4px;
 }
@@ -196,7 +191,7 @@
 }
 .voice p {
   margin: 5px 0 0;
-  color: var(--tutor-muted);
+  color: var(--muted-foreground);
   overflow-wrap: anywhere;
 }
 .voiceDot,
@@ -204,12 +199,12 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3e8a5e;
+  background: var(--primary);
   flex: 0 0 auto;
 }
 .voiceDot {
   margin-top: 9px;
-  box-shadow: 0 0 0 4px #e1f0e4;
+  box-shadow: 0 0 0 4px var(--primary-soft);
 }
 .feedback {
   display: flex;
@@ -218,7 +213,7 @@
   gap: 8px;
   margin: 8px 4px 0;
   font-size: 13px;
-  color: #854b24;
+  color: var(--warning);
 }
 .feedback button {
   flex: 0 0 auto;
@@ -240,15 +235,15 @@
   text-align: left;
   min-height: 70px;
   padding: 11px;
-  border: 1px solid var(--tutor-line);
+  border: 1px solid var(--border);
   border-radius: 13px;
-  background: #fafcf7;
+  background: var(--card);
 }
 .examples button:hover {
-  background: #eaf1e7;
+  background: var(--primary-soft);
 }
 .examples button > svg {
-  color: var(--tutor-green);
+  color: var(--primary-text);
   flex-shrink: 0;
 }
 .examples strong,
@@ -260,7 +255,7 @@
   font-weight: 650;
 }
 .examples small {
-  color: var(--tutor-muted);
+  color: var(--muted-foreground);
   font-size: 12px;
   margin-top: 3px;
 }
@@ -290,7 +285,7 @@
   align-self: flex-end;
   max-width: min(90%, 560px);
   padding: 10px 15px;
-  background: #e4eee0;
+  background: var(--primary-soft);
   border-radius: 16px 16px 4px 16px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -311,8 +306,8 @@
   overflow-wrap: anywhere;
   width: fit-content;
   padding: 13px 16px;
-  background: #fff;
-  border: 1px solid var(--tutor-line);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 4px 16px 16px 16px;
   line-height: 1.65;
 }
@@ -332,17 +327,17 @@
   display: flex;
   gap: 9px;
   align-items: center;
-  color: var(--tutor-muted);
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 .notice {
-  color: #73522f;
+  color: var(--warning);
   font-size: 13px;
   margin-bottom: 5px;
 }
 .sources {
   margin-top: 10px;
-  color: #365441;
+  color: var(--foreground);
   font-size: 13px;
 }
 .sources summary {
@@ -358,7 +353,7 @@
 }
 .followups button {
   min-height: 38px;
-  border: 1px solid var(--tutor-line);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 3px 10px;
   font-size: 13px;
@@ -369,7 +364,7 @@
   flex: 0 0 auto;
 }
 .shell :is(button, a, summary):focus-visible {
-  outline: 2px solid var(--tutor-green);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }
 .shell button:not(:disabled) {
@@ -437,9 +432,9 @@
   width: fit-content;
   min-height: 40px;
   padding: 5px 12px;
-  border: 1px solid var(--tutor-line);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  color: var(--tutor-green);
+  color: var(--primary-text);
   font-size: 14px;
 }
 
@@ -449,7 +444,7 @@
 }
 
 .practiceEntry:hover {
-  background: #eaf1e7;
+  background: var(--primary-soft);
 }
 
 .practicePage {
@@ -463,9 +458,9 @@
   display: grid;
   gap: 14px;
   padding: clamp(16px, 4vw, 28px);
-  border: 1px solid var(--tutor-line);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  background: #fff;
+  background: var(--card);
 }
 
 .practiceCard h1 {
@@ -499,12 +494,12 @@
   min-height: 42px;
   padding: 8px;
   border-radius: 9px;
-  background: #edf4e9;
+  background: var(--primary-soft);
 }
 
 .practiceGroup span {
   border-radius: 50%;
-  background: #348060;
+  background: var(--primary);
 }
 
 .practiceActions button,
@@ -512,23 +507,23 @@
 .practiceReviews button {
   min-height: 42px;
   padding: 5px 12px;
-  border: 1px solid var(--tutor-line);
+  border: 1px solid var(--border);
   border-radius: 9px;
   font-size: 14px;
 }
 
 .practiceActions button[aria-pressed='true'] {
-  background: #e6f1e7;
-  border-color: #83ad92;
-  color: var(--tutor-green);
+  background: var(--primary-soft);
+  border-color: var(--primary-edge);
+  color: var(--primary-text);
   font-weight: 650;
 }
 
 .practiceActions .practicePrimary,
 .practiceForm .practicePrimary {
-  background: var(--tutor-green);
-  border-color: var(--tutor-green);
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
   font-weight: 650;
 }
 
@@ -542,14 +537,14 @@
 .practiceForm input {
   width: 74px;
   min-height: 42px;
-  border: 1px solid #8b9e90;
+  border: 1px solid var(--input);
   border-radius: 9px;
   text-align: center;
   font-size: 16px;
 }
 
 .practiceForm input:focus-visible {
-  outline: 2px solid var(--tutor-green);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }
 
@@ -559,15 +554,15 @@
   min-height: 32px;
   align-items: center;
   gap: 6px;
-  color: var(--tutor-green);
+  color: var(--primary-text);
   font-size: 14px;
 }
 
 .practiceFeedback {
   padding: 11px 13px;
   border-radius: 10px;
-  background: #edf4e9;
-  color: #234f37;
+  background: var(--primary-soft);
+  color: var(--primary-text);
   line-height: 1.55;
 }
 
@@ -577,11 +572,11 @@
 }
 
 .practiceMuted {
-  color: var(--tutor-muted);
+  color: var(--muted-foreground);
 }
 
 .practiceError {
-  color: #873a1e;
+  color: var(--destructive);
 }
 
 .practiceReviews {
@@ -594,29 +589,24 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  border-top: 1px solid var(--tutor-line);
+  border-top: 1px solid var(--border);
   padding-top: 6px;
 }
 
 .practiceGroup[aria-pressed='true'] {
-  outline: 2px solid #348060;
+  outline: 2px solid var(--primary);
   outline-offset: -2px;
-  background: #d4ead9;
+  background: var(--primary-soft);
 }
 
 .practiceDialog {
-  --tutor-ink: #222c25;
-  --tutor-muted: #5e6b61;
-  --tutor-green: #255e43;
-  --tutor-line: #dbe4d9;
   width: min(calc(100% - 24px), 650px);
   max-width: none;
   max-height: calc(100dvh - 24px);
   overflow: auto;
   gap: 14px;
-  background: #f6f8f2;
-  color: var(--tutor-ink);
-  color-scheme: light;
+  background: var(--workspace);
+  color: var(--foreground);
 }
 
 .practiceDialogTitle {
@@ -633,7 +623,7 @@
   width: min(calc(100% - 36px), 740px);
   margin: 22px auto auto;
   padding: 16px 0 24px;
-  border-top: 1px solid var(--tutor-line);
+  border-top: 1px solid var(--border);
 }
 .continue h2 {
   font-weight: 650;
@@ -653,7 +643,7 @@
 }
 .threadTools button {
   min-height: 42px;
-  color: var(--tutor-green);
+  color: var(--primary-text);
   font-size: 13px;
 }
 @media (max-width: 540px) {

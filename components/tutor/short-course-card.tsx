@@ -1,5 +1,7 @@
 'use client';
 
+import { CardSection } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { BookOpen, ArrowRight } from 'lucide-react';
 import type { ShortCourse } from '@/lib/tutor/short-course';
@@ -22,7 +24,7 @@ export function ShortCourseCard({
   const paused = course?.state === 'paused';
   const done = course?.state === 'completed';
   return (
-    <section className={styles.card} aria-label="从这条问答生成课程">
+    <CardSection aria-label="从这条问答生成课程">
       <div className={styles.statusLine}>
         <h2 className="flex items-center gap-2">
           <BookOpen size={17} />
@@ -50,28 +52,33 @@ export function ShortCourseCard({
           </p>
           <div className={styles.actions}>
             {canOpen && (
-              <Link
-                href={'/classroom/' + encodeURIComponent(course.stageId!)}
-                className={styles.button}
-              >
-                {done ? '进入课堂' : '先学第一节'} <ArrowRight size={16} />
-              </Link>
+              <Button asChild size="touch">
+                <Link href={'/classroom/' + encodeURIComponent(course.stageId!)}>
+                  {done ? '进入课堂' : '先学第一节'} <ArrowRight size={16} />
+                </Link>
+              </Button>
             )}
             {paused && (
-              <button type="button" className={styles.secondary} disabled={busy} onClick={onRetry}>
+              <Button
+                type="button"
+                size="touch"
+                variant="outline"
+                disabled={busy}
+                onClick={onRetry}
+              >
                 重试生成
-              </button>
+              </Button>
             )}
           </div>
         </>
       ) : (
         <>
           <p className={styles.muted}>围绕这个问题讲一个概念，动手试一次，再做一道检查题。</p>
-          <button type="button" className={styles.button} disabled={busy} onClick={onStart}>
+          <Button type="button" size="touch" disabled={busy} onClick={onStart}>
             {busy ? '正在创建短课…' : '生成短课'}
-          </button>
+          </Button>
         </>
       )}
-    </section>
+    </CardSection>
   );
 }

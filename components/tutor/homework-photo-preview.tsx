@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useRef, useState } from 'react';
 import { ArrowUp, Camera, Crop, RotateCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -140,15 +141,18 @@ export function HomeworkPhotoPreview({
         <div className={styles.actions}>
           {cropping ? (
             <>
-              <button
-                className={styles.secondary}
+              <Button
+                size="touch"
+                variant="outline"
                 disabled={busy || !area || area.width < 0.03 || area.height < 0.03}
                 onClick={() => void edit(area)}
               >
                 应用范围
-              </button>
-              <button
-                className={styles.textButton}
+              </Button>
+              <Button
+                size="touch"
+                variant="ghost"
+                className="text-primary-text"
                 disabled={busy}
                 onClick={() => {
                   setCropping(false);
@@ -156,33 +160,40 @@ export function HomeworkPhotoPreview({
                 }}
               >
                 取消裁切
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <button
-                className={styles.secondary}
+              <Button
+                size="touch"
+                variant="outline"
                 disabled={busy}
                 onClick={() => setCropping(true)}
               >
                 <Crop size={17} />
                 调整范围
-              </button>
-              <button className={styles.secondary} disabled={busy} onClick={() => void edit()}>
+              </Button>
+              <Button size="touch" variant="outline" disabled={busy} onClick={() => void edit()}>
                 <RotateCw size={17} />
                 旋转
-              </button>
-              <button className={styles.textButton} disabled={busy} onClick={onRetake}>
+              </Button>
+              <Button
+                size="touch"
+                variant="ghost"
+                className="text-primary-text"
+                disabled={busy}
+                onClick={onRetake}
+              >
                 <Camera size={17} />
                 重拍
-              </button>
+              </Button>
             </>
           )}
         </div>
-        <button className={styles.button} disabled={busy || cropping} onClick={onSend}>
+        <Button size="touch" disabled={busy || cropping} onClick={onSend}>
           <ArrowUp size={18} />
           发送照片
-        </button>
+        </Button>
       </DialogContent>
     </Dialog>
   );

@@ -10,6 +10,7 @@ import {
   NotebookPen,
 } from 'lucide-react';
 import type { ChildProfile } from '@/lib/tutor/family';
+import { ThemeToggle } from '@/components/site-header/theme-toggle';
 import styles from './family-workspace.module.css';
 
 export function FamilyHeader({
@@ -42,15 +43,18 @@ export function FamilyHeader({
           </Link>
         )}
       </div>
-      {parent ? (
-        <span className={styles.muted}>家长视图</span>
-      ) : (
-        <Link href="/family?view=profiles" className={styles.profile}>
-          <span>{child?.name.slice(0, 1) || '家'}</span>
-          {child?.name || '家庭档案'}
-          <ChevronDown size={14} />
-        </Link>
-      )}
+      <div className="flex items-center gap-1.5">
+        <ThemeToggle />
+        {parent ? (
+          <span className={styles.muted}>家长视图</span>
+        ) : (
+          <Link href="/family?view=profiles" className={styles.profile}>
+            <span>{child?.name.slice(0, 1) || '家'}</span>
+            {child?.name || '家庭档案'}
+            <ChevronDown size={14} />
+          </Link>
+        )}
+      </div>
     </header>
   );
 }

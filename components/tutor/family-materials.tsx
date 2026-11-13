@@ -1,5 +1,6 @@
 'use client';
 
+import { CardSection } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import { FamilyHeader, FamilyNav } from './family-shell';
@@ -36,7 +37,7 @@ export function FamilyMaterials() {
           <h1>学习资料</h1>
           <p className={styles.copy}>与题目相关的教材和网页出处会显示在回答里。</p>
         </div>
-        <section className={styles.card}>
+        <CardSection>
           <h2>家庭资料</h2>
           {error ? (
             <p className={styles.muted}>暂时无法打开资料库。</p>
@@ -63,7 +64,7 @@ export function FamilyMaterials() {
               ))}
             </div>
           )}
-        </section>
+        </CardSection>
       </main>
       <FamilyNav active="/materials" />
     </div>

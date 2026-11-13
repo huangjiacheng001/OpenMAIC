@@ -1,16 +1,9 @@
 .page {
-  --ink: #202c26;
-  --muted: #52665a;
-  --edge: #dce5de;
-  --paper: #f8faf7;
-  --green: #1b5742;
-  --tint: #e8f1ea;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--paper);
-  color: var(--ink);
-  color-scheme: light;
+  background: var(--workspace);
+  color: var(--foreground);
 }
 .header {
   min-height: 58px;
@@ -19,9 +12,9 @@
   justify-content: space-between;
   gap: 8px;
   padding: 6px max(16px, calc((100% - 1000px) / 2));
-  border-bottom: 1px solid #dce5de;
-  color: #202c26;
-  background: #f8faf7;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  background: var(--workspace);
   flex: none;
 }
 .headerTitle,
@@ -41,15 +34,15 @@
   width: 29px;
   height: 29px;
   border-radius: 8px;
-  background: #1b5742;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 .profile {
   min-height: 42px;
   padding: 4px 9px 4px 5px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--border);
   border-radius: 9px;
-  background: #fff;
+  background: var(--card);
   font-size: 13px;
 }
 .profile span,
@@ -59,8 +52,8 @@
   width: 29px;
   height: 29px;
   border-radius: 7px;
-  color: #1b5742;
-  background: #e8f1ea;
+  color: var(--primary-text);
+  background: var(--primary-soft);
 }
 .iconButton {
   background: transparent;
@@ -75,9 +68,9 @@
   align-items: stretch;
   min-height: 60px;
   padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1px solid #dce5de;
-  color: #52665a;
-  background: #fff;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  background: var(--card);
 }
 .nav a {
   width: min(25%, 126px);
@@ -88,12 +81,12 @@
   font-size: 12px;
 }
 .nav a[aria-current] {
-  color: #1b5742;
+  color: var(--primary-text);
   font-weight: 650;
 }
 .nav a[aria-current] svg {
   box-sizing: content-box;
-  background: #e8f1ea;
+  background: var(--primary-soft);
   padding: 3px 9px;
   border-radius: 8px;
 }
@@ -122,44 +115,41 @@
 }
 .muted {
   font-size: 13px;
-  color: #52665a;
+  color: var(--muted-foreground);
 }
 .eyebrow {
   font-size: 12px;
-  color: #1b5742;
+  color: var(--primary-text);
   font-weight: 650;
   margin-bottom: 6px;
 }
 .copy {
-  color: #52665a;
+  color: var(--muted-foreground);
   font-size: 14px;
   margin-top: 7px;
 }
 .card,
-.problem,
-.panel {
-  border: 1px solid #dce5de;
+.problem {
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 13px;
-  background: #fff;
+  background: var(--card);
 }
-.card,
-.panel {
+.card {
   display: grid;
   gap: 10px;
 }
 .problem {
-  background: #eff4ef;
+  background: var(--muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .problem span {
   display: block;
   font-size: 12px;
-  color: #1b5742;
+  color: var(--primary-text);
   margin-bottom: 6px;
 }
-.panel form,
 .stack {
   display: grid;
   gap: 10px;
@@ -173,10 +163,10 @@
 }
 .field :is(input, textarea, select) {
   padding: 10px 11px;
-  border: 1px solid #bdccc0;
+  border: 1px solid var(--input);
   border-radius: 8px;
-  color: #202c26;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
   font-size: 16px;
   font-weight: 400;
   width: 100%;
@@ -185,41 +175,8 @@
   min-height: 76px;
   resize: vertical;
 }
-.button,
-.secondary,
-.textButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 44px;
-  border-radius: 8px;
-  padding: 7px 12px;
-  font-size: 14px;
-  font-weight: 620;
-}
-.button {
-  background: #1b5742;
-  color: #fff;
-}
-.button:disabled,
-.secondary:disabled,
-.textButton:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.secondary {
-  border: 1px solid #dce5de;
-  color: #1b5742;
-  background: #fff;
-}
-.textButton {
-  color: #1b5742;
-  text-align: left;
-  padding-inline: 4px;
-}
 .rows {
-  border-top: 1px solid #dce5de;
+  border-top: 1px solid var(--border);
 }
 .row {
   width: 100%;
@@ -230,7 +187,7 @@
   min-height: 57px;
   padding: 9px 2px;
   text-align: left;
-  border-bottom: 1px solid #dce5de;
+  border-bottom: 1px solid var(--border);
   overflow-wrap: anywhere;
 }
 .row div {
@@ -238,7 +195,7 @@
 }
 .row svg {
   flex: none;
-  color: #52665a;
+  color: var(--muted-foreground);
 }
 .row strong {
   display: block;
@@ -253,16 +210,16 @@
   font-size: 14px;
 }
 .alert {
-  background: #fbefdd;
-  color: #714a18;
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 .success {
-  background: #e8f1ea;
-  color: #1b5742;
+  background: var(--success-soft);
+  color: var(--success);
 }
 .notice {
-  background: #eff4ef;
-  color: #40574a;
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 .statusLine,
 .actions {
@@ -295,17 +252,17 @@
 .tabs button,
 .choices button,
 .stats div {
-  border: 1px solid #dce5de;
+  border: 1px solid var(--border);
   border-radius: 8px;
   min-height: 44px;
   padding: 7px;
-  background: #fff;
+  background: var(--card);
 }
 .tabs button[aria-pressed='true'],
 .choices button[aria-pressed='true'] {
-  background: #e8f1ea;
-  color: #1b5742;
-  border-color: #1b5742;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  border-color: var(--primary-text);
   font-weight: 650;
 }
 .choices {
@@ -319,7 +276,7 @@
 }
 .stats strong {
   margin-right: 8px;
-  color: #1b5742;
+  color: var(--primary-text);
   font-size: 21px;
 }
 .photo {
@@ -329,9 +286,8 @@
   border-radius: 8px;
 }
 .sheet {
-  color-scheme: light;
-  color: #202c26;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
   max-height: min(90dvh, 640px);
   overflow: auto;
   width: min(calc(100% - 24px), 490px);
@@ -352,7 +308,7 @@
   font-size: 14px;
 }
 .check input {
-  accent-color: #1b5742;
+  accent-color: var(--primary-text);
   height: 18px;
   width: 18px;
 }
@@ -372,9 +328,8 @@
 
 .photoDialog {
   width: min(calc(100% - 24px), 540px);
-  color-scheme: light;
-  color: #202c26;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
   max-height: min(94dvh, 780px);
   overflow: auto;
   padding: 19px;
@@ -400,7 +355,7 @@
 }
 .cropArea {
   position: absolute;
-  border: 2px solid #a4f4bd;
-  box-shadow: 0 0 0 150vmax #0007;
+  border: 2px solid var(--media-focus);
+  box-shadow: 0 0 0 150vmax var(--media-mask);
   pointer-events: none;
 }

@@ -24,9 +24,6 @@ import {
   Trash2,
   Search,
   Settings,
-  Sun,
-  Moon,
-  Monitor,
   ChevronUp,
   Upload,
   Sparkles,
@@ -56,7 +53,7 @@ import { cn } from '@/lib/utils';
 import { SettingsDialog } from '@/components/settings';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { AgentBar } from '@/components/agent/agent-bar';
-import { useTheme } from '@/lib/hooks/use-theme';
+import { ThemeToggle } from '@/components/site-header/theme-toggle';
 import { useRestorePresetAgentChoice } from '@/lib/hooks/use-restore-preset-agent-choice';
 import {
   courseGenerationUsable,
@@ -161,7 +158,6 @@ const initialFormState: FormState = {
 
 function HomePage() {
   const { t } = useI18n();
-  const { theme, setTheme } = useTheme();
   const router = useRouter();
   const mobile = useMobileLayout();
   useRestorePresetAgentChoice();
@@ -284,7 +280,6 @@ function HomePage() {
     }
   }, []);
 
-  const [themeOpen, setThemeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // True while the Generate click starts the run. Doubles as the guard flag
   // that freezes the course material set for the duration of the start and as
@@ -317,20 +312,7 @@ function HomePage() {
   const [createAndMoveTarget, setCreateAndMoveTarget] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    if (!themeOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        setThemeOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [themeOpen]);
 
   const loadClassrooms = async () => {
     try {
@@ -791,77 +773,15 @@ function HomePage() {
         </button>
       )}
       {/* Shared language, theme and desktop settings controls. */}
-      <div
-        ref={toolbarRef}
-        className="home-top-tools fixed top-4 right-4 z-50 flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
-      >
+      <div className="home-top-tools fixed top-4 right-4 z-50 flex items-center gap-1 bg-card/60 backdrop-blur-md px-2 py-1.5 rounded-full border shadow-sm">
         {/* Language Selector */}
-        <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
+        <LanguageSwitcher />
 
-        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
+        <div className="h-4 w-px bg-border" />
 
-        {/* Theme Selector */}
-        <div className="relative">
-          <button
-            aria-label={t('settings.theme')}
-            onClick={() => {
-              setThemeOpen(!themeOpen);
-            }}
-            className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
-          >
-            {theme === 'light' && <Sun className="w-4 h-4" />}
-            {theme === 'dark' && <Moon className="w-4 h-4" />}
-            {theme === 'system' && <Monitor className="w-4 h-4" />}
-          </button>
-          {themeOpen && (
-            <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
-              <button
-                onClick={() => {
-                  setTheme('light');
-                  setThemeOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                  theme === 'light' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                <Sun className="w-4 h-4" />
-                {t('settings.themeOptions.light')}
-              </button>
-              <button
-                onClick={() => {
-                  setTheme('dark');
-                  setThemeOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                  theme === 'dark' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                <Moon className="w-4 h-4" />
-                {t('settings.themeOptions.dark')}
-              </button>
-              <button
-                onClick={() => {
-                  setTheme('system');
-                  setThemeOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                  theme === 'system' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                <Monitor className="w-4 h-4" />
-                {t('settings.themeOptions.system')}
-              </button>
-            </div>
-          )}
-        </div>
+        <ThemeToggle />
 
-        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
+        <div className="h-4 w-px bg-border" />
 
         {/* Settings Button */}
         <div className="home-desktop-settings relative">

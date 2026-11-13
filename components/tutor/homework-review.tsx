@@ -1,5 +1,7 @@
 'use client';
 
+import { CardSection } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -77,15 +79,17 @@ function ReviewDetail({ child, id }: { child: ChildProfile; id: string }) {
       {error && (
         <div role="alert" className={styles.alert}>
           {error}
-          <button
-            className={styles.textButton}
+          <Button
+            size="touch"
+            variant="ghost"
+            className="text-primary-text"
             onClick={() => {
               setError('');
               setRequestVersion((v) => v + 1);
             }}
           >
             刷新题目
-          </button>
+          </Button>
         </div>
       )}
       {!item ? (
@@ -163,9 +167,9 @@ function ReviewDetail({ child, id }: { child: ChildProfile; id: string }) {
                   />
                 </label>
               )}
-              <button className={styles.button} disabled={!answer.trim() || sending}>
+              <Button size="touch" disabled={!answer.trim() || sending}>
                 {sending ? '正在提交…' : '提交答案'}
-              </button>
+              </Button>
             </form>
           )}
           {item.explanation && (
@@ -186,26 +190,23 @@ function ReviewDetail({ child, id }: { child: ChildProfile; id: string }) {
               </Streamdown>
               {!item.checkable && !item.completedAt && (
                 <div className={styles.actions}>
-                  <button
-                    className={styles.secondary}
+                  <Button
+                    size="touch"
+                    variant="outline"
                     disabled={sending}
                     onClick={() => void submit('retry')}
                   >
                     还要再练
-                  </button>
-                  <button
-                    className={styles.button}
-                    disabled={sending}
-                    onClick={() => void submit('correct')}
-                  >
+                  </Button>
+                  <Button size="touch" disabled={sending} onClick={() => void submit('correct')}>
                     我确认做对了
-                  </button>
+                  </Button>
                 </div>
               )}
             </details>
           )}
           {item.attemptsList.length > 0 && (
-            <section className={styles.card}>
+            <CardSection>
               <h2>这道题的作答</h2>
               {item.attemptsList.map((record, index) => (
                 <div className={styles.row} key={record.id}>
@@ -217,17 +218,17 @@ function ReviewDetail({ child, id }: { child: ChildProfile; id: string }) {
                   </div>
                 </div>
               ))}
-            </section>
+            </CardSection>
           )}
           {item.completedAt && (
-            <Link href="/practice?done=1" className={styles.button}>
-              回到已完成列表
-            </Link>
+            <Button asChild size="touch">
+              <Link href="/practice?done=1">回到已完成列表</Link>
+            </Button>
           )}
           {item.threadId && (
-            <Link href={'/?thread=' + item.threadId} className={styles.secondary}>
-              回原问答继续学
-            </Link>
+            <Button asChild size="touch" variant="outline">
+              <Link href={'/?thread=' + item.threadId}>回原问答继续学</Link>
+            </Button>
           )}
         </>
       )}
@@ -281,15 +282,17 @@ function ReviewList({ child, initialDone }: { child: ChildProfile; initialDone: 
       {error ? (
         <div className={styles.alert} role="alert">
           {error}{' '}
-          <button
-            className={styles.textButton}
+          <Button
+            size="touch"
+            variant="ghost"
+            className="text-primary-text"
             onClick={() => {
               setError('');
               setReload((value) => value + 1);
             }}
           >
             重试
-          </button>
+          </Button>
         </div>
       ) : !data ? (
         <p className={styles.muted} role="status">
@@ -338,9 +341,14 @@ export function HomeworkReview({
         {error ? (
           <div className={styles.alert} role="alert">
             {error}{' '}
-            <button className={styles.textButton} onClick={() => void refresh()}>
+            <Button
+              size="touch"
+              variant="ghost"
+              className="text-primary-text"
+              onClick={() => void refresh()}
+            >
               重试
-            </button>
+            </Button>
           </div>
         ) : !session ? (
           <p className={styles.muted} role="status">
@@ -360,9 +368,9 @@ export function HomeworkReview({
           <>
             <h1>错题本</h1>
             <p className={styles.copy}>用孩子档案保存和重做原题，换设备也能找到。</p>
-            <Link href="/family?view=profiles" className={styles.button}>
-              打开家庭档案
-            </Link>
+            <Button asChild size="touch">
+              <Link href="/family?view=profiles">打开家庭档案</Link>
+            </Button>
           </>
         )}
       </main>
