@@ -1842,7 +1842,7 @@ describe.skipIf(!contractUrl)('generation runs on PostgreSQL', () => {
           };
         },
         sceneActions: async (owner, input, ctx) => {
-          return input.outline.type === 'interactive'
+          return input.outline.type === 'interactive' && 'html' in input.content
             ? assembleTutorShortScene(input.outline, input.content, input.stageId)
             : base.services.sceneActions(owner, input, ctx);
         },
