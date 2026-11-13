@@ -28,7 +28,6 @@ const log = createLogger('FamilyTutor');
 const bodySchema = z
   .object({
     question: z.string().trim().max(MAX_TUTOR_TEXT),
-    timeZone: z.string().trim().max(100).optional(),
     photo: z
       .string()
       .max(MAX_TUTOR_PHOTO)
@@ -85,8 +84,8 @@ export async function POST(req: NextRequest) {
     const body = bodySchema.safeParse(raw);
     if (!body.success) return failure('invalid', capped.exceeded() ? 413 : 400, headers);
 
-    const { question, history, photo, photoTurn, timeZone } = body.data;
-    const calendar = tutorCalendar(new Date(), timeZone);
+    const { question, history, photo, photoTurn } = body.data;
+    const calendar = tutorCalendar(new Date());
     const directAnswer = (!photo || photoTurn !== undefined) && calendar.answer(question);
     if (directAnswer) {
       return new Response(

@@ -5,29 +5,19 @@ const CALENDAR_QUESTION_EN =
 const CHINESE_DAYS: Record<string, number> = { 昨天: -1, 今天: 0, 明天: 1 };
 const ENGLISH_DAYS: Record<string, number> = { yesterday: -1, today: 0, tomorrow: 1 };
 
-/** The instant comes from the server. The browser supplies only its time zone. */
-export function tutorCalendar(now: Date, requestedTimeZone?: string) {
-  let formatter: Intl.DateTimeFormat;
-  try {
-    formatter = new Intl.DateTimeFormat('en-CA', {
-      calendar: 'gregory',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      timeZone: requestedTimeZone,
-    });
-  } catch (error) {
-    if (!(error instanceof RangeError)) throw error;
-    formatter = new Intl.DateTimeFormat('en-CA', {
-      calendar: 'gregory',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-    });
-  }
-  const { timeZone } = formatter.resolvedOptions();
+const BEIJING_TIME_ZONE = 'Asia/Shanghai';
+const beijingDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  calendar: 'gregory',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  timeZone: BEIJING_TIME_ZONE,
+});
+
+/** The instant comes from the server and the family tutor uses Beijing time. */
+export function tutorCalendar(now: Date) {
   const parts = Object.fromEntries(
-    formatter.formatToParts(now).map(({ type, value }) => [type, value]),
+    beijingDateFormatter.formatToParts(now).map(({ type, value }) => [type, value]),
   );
   // From here on the date is a local calendar day. Move by calendar days,
   // irrespective of daylight-saving changes in the user's time zone.
@@ -35,7 +25,7 @@ export function tutorCalendar(now: Date, requestedTimeZone?: string) {
     Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)),
   );
   const isoDate = calendarDay.toISOString().slice(0, 10);
-  const systemContext = `当前公历日期由服务器时钟按用户时区计算：${isoDate}（${timeZone}）。解释“今天”“昨天”“明天”等相对日期时，以这个日期为准。`;
+  const systemContext = `当前公历日期由服务器时钟按北京时间计算：${isoDate}（Asia/Shanghai）。用户未指定其他时区时，解释“今天”“昨天”“明天”等相对日期以北京时间为准。`;
 
   function answer(question: string): string | undefined {
     const normalized = question.trim().replace(/\s+/g, ' ');
@@ -46,7 +36,7 @@ export function tutorCalendar(now: Date, requestedTimeZone?: string) {
       const value = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'full', timeZone: 'UTC' }).format(
         date,
       );
-      return `${label}是${value}。`;
+      return `${label}是${value}（北京时间）。`;
     }
     const english = normalized.match(CALENDAR_QUESTION_EN);
     if (!english) return undefined;
@@ -55,7 +45,7 @@ export function tutorCalendar(now: Date, requestedTimeZone?: string) {
     const value = new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeZone: 'UTC' }).format(
       date,
     );
-    return `${label[0].toUpperCase() + label.slice(1)} ${label === 'yesterday' ? 'was' : 'is'} ${value}.`;
+    return `${label[0].toUpperCase() + label.slice(1)} ${label === 'yesterday' ? 'was' : 'is'} ${value} (Beijing time).`;
   }
 
   function shiftedDay(offset: number) {
