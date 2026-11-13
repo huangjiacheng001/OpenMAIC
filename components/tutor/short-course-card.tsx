@@ -77,7 +77,14 @@ export function ShortCourseCard({
             {canOpen && course.quizSceneId && (
               <Button asChild size="touch" variant={done ? 'outline' : 'default'}>
                 <Link href={href + '?scene=' + encodeURIComponent(course.quizSceneId)}>
-                  {done ? '做测验' : '先做测验'}
+                  {course.interactiveSceneId ? '做测验' : '先做测验'}
+                </Link>
+              </Button>
+            )}
+            {canOpen && course.lessonSceneId && (
+              <Button asChild size="touch" variant="outline">
+                <Link href={href + '?scene=' + encodeURIComponent(course.lessonSceneId)}>
+                  看正式讲解
                 </Link>
               </Button>
             )}

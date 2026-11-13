@@ -412,6 +412,7 @@ async function executeClaimedRun(
   let run: StoredRun = claim.run;
   const input = run.input;
   const explanation = input.format === 'tutor-short' ? input.tutorExplanation : undefined;
+  const withCourseware = Boolean(explanation && input.tutorCourseware);
   // The owner the run works for now, refreshed at every step boundary: a
   // claim may move the run's owner into an account while it generates.
   let owner = await currentOwnerOf(run.ownerId);
@@ -531,7 +532,7 @@ async function executeClaimedRun(
               // The first scene is generated with the session's requirements;
               // the classroom generates the rest with the task-engine flag only.
               requirements:
-                sceneIndex === 0
+                sceneIndex === 0 || (withCourseware && outlines[sceneIndex]?.type === 'slide')
                   ? runRequirements(input, research?.webSearch === true)
                   : taskEngineMode
                     ? ({ taskEngineMode: true } as UserRequirements)
@@ -551,7 +552,7 @@ async function executeClaimedRun(
   const prewarmAbort = new AbortController();
   const prewarmSignal = AbortSignal.any([signal, prewarmAbort.signal]);
   const startContentPrewarm = (fromIndex: number) => {
-    const concurrency = explanation ? 2 : services.parallelSceneConcurrency();
+    const concurrency = withCourseware ? 3 : explanation ? 2 : services.parallelSceneConcurrency();
     const sceneCount = outline().outlines.length;
     const pending: number[] = [];
     for (let index = fromIndex; index < sceneCount; index += 1) {
@@ -728,7 +729,10 @@ async function executeClaimedRun(
         const { outlines, languageDirective } = outline();
         const content = output<SceneContentResult>(sceneStepId(index, 'content'))!;
         const effectiveOutline = content.effectiveOutline || outlines[index]!;
-        if (input.format === 'tutor-short') {
+        if (
+          input.format === 'tutor-short' &&
+          (!withCourseware || index === 0 || effectiveOutline.type === 'quiz')
+        ) {
           const result = assembleTutorShortScene(
             effectiveOutline,
             content.content,
@@ -800,7 +804,7 @@ async function executeClaimedRun(
   const runOutlineStep = async (stepId: string): Promise<StepCommit> => {
     if (explanation) {
       return commitOutline(stepId, {
-        outlines: tutorExplanationOutline(explanation),
+        outlines: tutorExplanationOutline(explanation, withCourseware),
         languageDirective: '用简体中文，适合学生当前年级。',
         courseTitle: explanation.title,
         taskEngineMode: false,

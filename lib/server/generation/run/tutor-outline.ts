@@ -6,11 +6,17 @@ import type { SceneOutline } from '@/lib/types/generation';
 import type { ShortCourseExplanation } from '@/lib/tutor/short-course';
 import { escapeHtmlText } from '@/lib/export/standalone-html/assemble';
 
-export function tutorExplanationOutline(explanation: ShortCourseExplanation): SceneOutline[] {
+export function tutorExplanationOutline(
+  explanation: ShortCourseExplanation,
+  withCourseware = false,
+): SceneOutline[] {
   const questions = explanation.sections.map(({ question }) => question.slice(0, 240));
   const title = '先弄懂这道题';
   const audience = explanation.grade ? '按' + explanation.grade + '的理解水平组织内容。' : '';
-  return [
+  const coding =
+    withCourseware && /python|javascript|编程|写代码|代码运行/i.test(questions.join(' '));
+  const topic = explanation.title;
+  const outlines: SceneOutline[] = [
     {
       id: 'short-slide',
       type: 'slide',
@@ -24,15 +30,17 @@ export function tutorExplanationOutline(explanation: ShortCourseExplanation): Sc
       id: 'short-interactive',
       type: 'interactive',
       order: 1,
-      title: '动手试一试',
+      title: coding ? '改一行代码，观察输出' : withCourseware ? '改变条件，验证解释' : '动手试一试',
       description:
-        '围绕原问题设计一个可操作的活动。让学生改变一个条件，观察结果并获得解释。' + audience,
+        '围绕原问题设计活动。先请学生预测，再改变一个条件，显示实际结果、解释为什么，以及一个可比较的反例。' +
+        audience,
       keyPoints: questions,
-      widgetType: 'simulation',
+      widgetType: coding ? 'code' : 'simulation',
       widgetOutline: {
-        concept: explanation.title,
+        concept: topic,
+        ...(coding ? { language: /javascript/i.test(topic) ? 'javascript' : 'python' } : {}),
         designIdea:
-          '选一个能体现核心原理的条件，让学生主动改变它。比较改变前后的结果，用中文即时反馈，并覆盖相关追问。',
+          '从可观察的任务开始，提供正常情形和反例。操作后立即比较改变前后的结果，并解释与原题及追问的关系。',
       },
       estimatedDuration: 100,
     },
@@ -40,15 +48,33 @@ export function tutorExplanationOutline(explanation: ShortCourseExplanation): Sc
       id: 'short-quiz',
       type: 'quiz',
       order: 2,
-      title: '用一道题检查',
+      title: withCourseware ? '用三道题检查理解' : '用一道题检查',
       description:
-        '用一个不同于原题的新情境检查学生能否应用同一个概念。每个选项应清晰，并提供答案解析。' +
+        '用不同于原题的场景检验迁移。若有多题，分别检查核心因果、在新场景应用和辨析常见误区。干扰项应来自常见错误，题干不要泄露答案，逐题解释正确理由。' +
         audience,
       keyPoints: questions,
-      quizConfig: { questionCount: 1, difficulty: 'easy', questionTypes: ['single'] },
+      quizConfig: {
+        questionCount: withCourseware ? 3 : 1,
+        difficulty: 'easy',
+        questionTypes: ['single'],
+      },
       estimatedDuration: 60,
     },
   ];
+  if (withCourseware) {
+    outlines.splice(1, 0, {
+      id: 'short-worked-example',
+      type: 'slide',
+      order: 1,
+      title: coding ? '跟着例子学会第一步' : '用图和例子讲懂',
+      description:
+        '设计一页可独立教学的正式课件。先点出常见误解，再用带标注的图或代码逐步说明，最后用新例子检查理解。文字适合手机阅读。' +
+        audience,
+      keyPoints: questions,
+      estimatedDuration: 75,
+    });
+  }
+  return outlines.map((item, order) => ({ ...item, order }));
 }
 
 export function tutorExplanationSlide(

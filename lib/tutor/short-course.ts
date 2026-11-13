@@ -23,6 +23,7 @@ export type ShortCourse = {
   total: number;
   quizSceneId?: string;
   interactiveSceneId?: string;
+  lessonSceneId?: string;
 };
 
 const teachingQuestion =
