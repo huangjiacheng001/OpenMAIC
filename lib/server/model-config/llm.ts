@@ -8,7 +8,7 @@
  * operator transport, which re-validates every redirect hop.
  */
 import { attachModelFallback } from '@/lib/ai/model-fallbacks';
-import { getProviderPreset } from '@/lib/config/provider-presets';
+import { CHATGPT_PLAN_PRESET, getProviderPreset } from '@/lib/config/provider-presets';
 import { presetIdFor } from '@/lib/config/preset-ids';
 import { getModel, getProvider, isProviderKeyRequired } from '@/lib/ai/providers';
 import { fetchWithRedirectValidation } from '@/lib/server/fetch-with-redirect-validation';
@@ -18,6 +18,7 @@ import type { ResolvedModel } from '@/lib/server/resolve-model';
 import { validateClientBaseUrl } from '@/lib/server/ssrf-guard';
 import type { ProviderId, ThinkingConfig } from '@/lib/types/provider';
 
+import { fetchWithChatGptPlan } from './chatgpt-plan';
 import { isPiGeminiCompatibleRoute, PiGeminiNativeRequiredError } from './pi-gemini-route';
 import { checkRequirement, type ResolvedModelTarget, type SlotResolution } from './resolve-slot';
 import { lookupStage, requestMayChoose, SlotDisabledError, SlotUnassignedError } from './runtime';
@@ -66,6 +67,16 @@ export async function languageModelFor(
     );
   }
   const userEndpoint = target.providerSource === 'workspace';
+  const usesChatGptPlan = target.presetId === CHATGPT_PLAN_PRESET;
+  if (
+    usesChatGptPlan &&
+    (target.providerSource !== 'deployment' || target.baseUrl || target.proxy || target.apiKey)
+  ) {
+    throw new ModelConfigurationError(
+      'MODEL_CONFIG_INVALID',
+      'The ChatGPT plan provider uses its own connection and only supports deployment configuration.',
+    );
+  }
   if (userEndpoint) {
     // Bedrock signs with the server's AWS credential chain when it has no key
     // of its own, and a proxy would route around the transport below: neither
@@ -108,7 +119,12 @@ export async function languageModelFor(
     ...(keyOptional ? { requiresApiKey: false } : {}),
     baseUrl: target.baseUrl,
     proxy: target.proxy,
-    fetchImpl: userEndpoint ? clientBaseUrlLlmFetch : fetchWithRedirectValidation,
+    ...(usesChatGptPlan && { openaiResponses: true }),
+    fetchImpl: usesChatGptPlan
+      ? fetchWithChatGptPlan
+      : userEndpoint
+        ? clientBaseUrlLlmFetch
+        : fetchWithRedirectValidation,
   });
   return {
     model,
@@ -117,6 +133,7 @@ export async function languageModelFor(
     providerId: registryId,
     modelId,
     apiKey,
+    ...(usesChatGptPlan && { usesChatGptPlan: true as const }),
     baseUrl: target.baseUrl,
     thinkingConfig,
     // The configuration is the server's, whoever edited it: the slot's own

@@ -43,6 +43,8 @@ export interface ResolvedModel extends ModelWithInfo {
   modelId: string;
   /** Effective API key after server-side fallback resolution */
   apiKey: string;
+  /** This model uses a server-managed connection instead of an API key. */
+  usesChatGptPlan?: true;
   /** Effective base URL after server/client resolution */
   baseUrl?: string;
   /** Optional per-request thinking configuration from the client. */

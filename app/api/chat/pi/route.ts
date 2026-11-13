@@ -153,6 +153,7 @@ async function chat(req: NextRequest, principal: OwnerPrincipal): Promise<Respon
       model: languageModel,
       apiKey: resolvedApiKey,
       providerId,
+      usesChatGptPlan,
       modelInfo,
       thinkingConfig: resolvedThinkingConfig,
     } = await resolveModel({
@@ -171,7 +172,7 @@ async function chat(req: NextRequest, principal: OwnerPrincipal): Promise<Respon
       thinkingConfig: body.thinkingConfig ?? body.thinking,
     });
 
-    if (isProviderKeyRequired(providerId) && !resolvedApiKey) {
+    if (!usesChatGptPlan && isProviderKeyRequired(providerId) && !resolvedApiKey) {
       return apiError('MISSING_API_KEY', 401, 'API Key is required');
     }
 

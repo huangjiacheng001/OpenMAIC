@@ -1,5 +1,5 @@
 import { getSlot, isSlotId, type SlotCapability } from '@/lib/config/model-slots';
-import { getProviderPreset } from '@/lib/config/provider-presets';
+import { CHATGPT_PLAN_PRESET, getProviderPreset } from '@/lib/config/provider-presets';
 import { TTS_PROVIDERS, ASR_PROVIDERS } from '@/lib/audio/constants';
 import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
@@ -15,7 +15,8 @@ export function usesServerCredentials(provider: {
   return Boolean(
     provider.apiKey ||
     Object.values(provider.credentials ?? {}).some(Boolean) ||
-    provider.preset === 'bedrock',
+    provider.preset === 'bedrock' ||
+    provider.preset === CHATGPT_PLAN_PRESET,
   );
 }
 

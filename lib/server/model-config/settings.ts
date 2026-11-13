@@ -32,6 +32,7 @@ import {
   type SlotId,
 } from '@/lib/config/model-slots';
 import {
+  CHATGPT_PLAN_PRESET,
   PROVIDER_PRESETS,
   catalogueModel,
   getProviderPreset,
@@ -361,6 +362,9 @@ function officialEndpointOf(provider: Pick<Provider, 'preset' | 'baseUrl'>): str
 }
 
 function workspacePresetProblem(preset: ProviderPreset): string | undefined {
+  if (preset.id === CHATGPT_PLAN_PRESET) {
+    return 'ChatGPT plan can only be configured by the deployment (openmaic.yml)';
+  }
   if (preset.capabilities.chat?.registryId === 'bedrock') {
     return 'Amazon Bedrock can only be configured by the deployment (openmaic.yml)';
   }

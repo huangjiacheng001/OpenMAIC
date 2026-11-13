@@ -92,6 +92,8 @@ const REGISTRIES: Record<SlotCapability, Record<string, RegistryEntry>> = {
   webFetch: WEB_FETCH_PROVIDERS,
 };
 
+export const CHATGPT_PLAN_PRESET = 'chatgpt-plan';
+
 export { PRESET_ID_OVERRIDES } from '@/lib/config/preset-ids';
 
 /**
@@ -141,6 +143,14 @@ function singlePresets(): ProviderPreset[] {
     kind: 'single',
     capabilities: { chat: { registryId: 'openai' } },
     requiresBaseUrl: true,
+    trustsModelCatalogue: false,
+    apiKeyOptional: true,
+  });
+  presets.push({
+    id: CHATGPT_PLAN_PRESET,
+    name: 'ChatGPT plan',
+    kind: 'single',
+    capabilities: { chat: { registryId: 'openai' } },
     trustsModelCatalogue: false,
     apiKeyOptional: true,
   });

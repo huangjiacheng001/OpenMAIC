@@ -191,6 +191,8 @@ export interface ModelConfig {
   baseUrl?: string;
   proxy?: string; // Optional: HTTP proxy URL for this provider
   providerType?: ProviderType; // Optional: for custom providers on server-side
+  /** Force the native OpenAI Responses transport for a server-owned provider. */
+  openaiResponses?: boolean;
   /**
    * Whether the call needs a key, when the caller's configuration says so
    * (a self-hosted OpenAI-compatible server needs none, although the

@@ -2447,7 +2447,8 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       // as named compatible providers: inject the gateway's thinking control
       // and recover reasoning_content before the SDK schema can discard it.
       const usesOpenAIResponses =
-        !useStreamingChatCompat && shouldUseOpenAIResponsesApi(config.providerId, config.modelId);
+        config.openaiResponses ||
+        (!useStreamingChatCompat && shouldUseOpenAIResponsesApi(config.providerId, config.modelId));
       const usesCompatTransport =
         config.providerId !== 'openai' ||
         (usesCustomOpenAIBaseUrl(config.baseUrl) && !usesOpenAIResponses);
@@ -2622,6 +2623,26 @@ export function getModel(config: ModelConfig): ModelWithInfo {
 
       const openai = createOpenAI(openaiOptions);
       model = usesOpenAIResponses ? openai.responses(config.modelId) : openai.chat(config.modelId);
+      if (config.openaiResponses) {
+        model = wrapLanguageModel({
+          model,
+          middleware: {
+            specificationVersion: 'v3',
+            transformParams: async ({ params }) => ({
+              ...params,
+              providerOptions: {
+                ...params.providerOptions,
+                openai: {
+                  ...params.providerOptions?.openai,
+                  store: false,
+                  systemMessageMode: 'developer',
+                  reasoningEffort: params.providerOptions?.openai?.reasoningEffort ?? 'low',
+                },
+              },
+            }),
+          },
+        });
+      }
       // OpenAI-compatible providers (e.g. DeepSeek, Qwen), including a custom
       // gateway configured through the `openai` slot, stream reasoning
       // either as a separate `reasoning_content` field (normalized to an inline

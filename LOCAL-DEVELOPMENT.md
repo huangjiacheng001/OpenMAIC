@@ -49,3 +49,27 @@ git push -u origin codex/sync-vX.Y.Z
 升级前读发行说明，备份 PostgreSQL、应用数据卷和模型实例密钥。建议用独立 Compose 项目、端口和数据库卷验证升级，特别是带数据库迁移的版本。通过后，将升级分支合并到 `codex/local` 并重新构建部署。需要更新 Fork 的上游开发主线时，可在 GitHub 的 `main` 上使用 **Sync fork**。
 
 GitHub 保存源码和提交历史。课程、媒体、模型设置及实例密钥需要另行备份。默认 Compose 使用 `openmaic-postgres` 和 `openmaic-data` 两个命名卷，实际名称带 Compose 项目前缀。日常停机使用 `docker compose stop`。
+
+## 使用 ChatGPT 套餐额度
+
+这是单人、仅本机监听的 Docker 部署。通过 OpenAI 官方的 [Sign in with ChatGPT](https://developers.openai.com/siwc/token-sharing-open-source) 授权 OpenMAIC 使用当前账号的套餐额度。它会在 ChatGPT 使用量页面显示为独立应用，但套餐额度与 Codex 共享。
+
+1. 在运行的 Compose 项目根目录执行 `OPENMAIC_DOCKER_CONTEXT=colima-openmaic node scripts/connect-chatgpt-plan.mjs`。使用 Node.js 22.19 或更高版本。若 Docker CLI 不在 PATH，可设置 `OPENMAIC_DOCKER`。
+2. 在系统浏览器完成 OpenAI 授权。脚本把连接凭据写入应用数据卷的 `data/chatgpt-plan.json`，并显示账号可用模型。删除凭据前，可在 [ChatGPT 用量设置](https://chatgpt.com/settings/usage) 管理此应用的额度或断开连接。
+3. 在 `openmaic.yml` 配置下面的模型槽位，并按官方 Compose 注释将文件挂载到 `/app/openmaic.yml`。只使用授权脚本返回的模型。此前在网页保存过默认模型时，可在课程模型设置里清除覆盖，或使用 `lock: [llm]` 固定整个文本模型配置。
+4. 重新构建和启动应用。若 Docker 需要宿主机的网络代理，使用本地 Compose 覆盖文件给应用设置 `HTTPS_PROXY` 和 `NODE_USE_ENV_PROXY=1`。运行授权脚本的宿主机如需代理，也可通过相同的 Node 环境变量启用已配置的代理。
+
+```yaml
+providers:
+  chatgpt:
+    preset: chatgpt-plan
+    models: [gpt-6-luna, gpt-6.1-terra]
+slots:
+  llm: chatgpt:gpt-6-luna
+  course.content.interactive: chatgpt:gpt-6.1-terra
+  classroom: chatgpt:gpt-6.1-terra
+  agent: null
+lock: [llm]
+```
+
+这个连接提供课件生成和课堂文本问答。图片、视频和音频能力可用各自的模型服务单独配置。
