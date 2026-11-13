@@ -1887,6 +1887,106 @@ describe.skipIf(!contractUrl)('generation runs on PostgreSQL', () => {
     },
   );
 
+  it('uses the classroom outline and publishes its quiz during the first lecture step', async () => {
+    const lecture = gate();
+    const firstLectureStarted = gate();
+    const base = fakeServices();
+    const { services } = fakeServices({
+      narrationTarget: async () => null,
+      sceneContent: async (owner, input, ctx) => {
+        if (input.outline.type !== 'quiz') return base.services.sceneContent(owner, input, ctx);
+        return {
+          effectiveOutline: input.outline,
+          content: {
+            questions: [
+              {
+                id: 'seasons',
+                type: 'single',
+                question: '哪个半球过夏天？',
+                options: [
+                  { value: 'A', label: '朝向太阳的一侧' },
+                  { value: 'B', label: '背向太阳的一侧' },
+                ],
+                answer: ['A'],
+              },
+            ],
+          },
+        };
+      },
+      sceneActions: async (owner, input, ctx) => {
+        if (input.outline.order === 1) {
+          firstLectureStarted.release();
+          await lecture.promise;
+        }
+        if ('questions' in input.content || 'html' in input.content) {
+          return assembleTutorShortScene(input.outline, input.content, input.stageId);
+        }
+        return base.services.sceneActions(owner, input, ctx);
+      },
+    });
+    const run = await createGenerationRun(
+      OWNER,
+      runInput({
+        format: 'tutor-short',
+        tutorCourseware: 'full',
+        tutorExplanation: {
+          title: '为什么有四季？',
+          sections: [{ question: '为什么有四季？', answer: '因为地轴倾斜。' }],
+        },
+        outlineReview: 'auto',
+      }),
+      { maxActiveRunsPerOwner: 50, maxWaitingRunsPerOwner: 50 },
+    );
+    const execute = drive(run.id, {
+      ...services,
+      sceneContent: async (owner, input, ctx) => {
+        if (input.outline.type !== 'interactive') return services.sceneContent(owner, input, ctx);
+        return {
+          effectiveOutline: input.outline,
+          content: { html: '<button type="button">改变角度</button>', widgetType: 'simulation' },
+        };
+      },
+    });
+    try {
+      await vi.waitFor(async () => {
+        const current = await readGenerationRun(run.id, OWNER);
+        expect(current).toMatchObject({
+          state: 'generating',
+          progress: { scenesCompleted: 2, scenesTotal: 6 },
+        });
+        expect(current?.outline?.outlines.map((scene) => scene.title).slice(0, 4)).toEqual([
+          '导读',
+          'Intro',
+          'Body',
+          'End',
+        ]);
+        const doc = await documentStore(OWNER).loadDocument(current!.stageId!);
+        expect(doc?.scenes.map((scene) => scene.type)).toEqual(['slide', 'quiz']);
+      }, UNTIL);
+      await firstLectureStarted.promise;
+    } finally {
+      lecture.release();
+      await execute;
+    }
+    expect(await execute).toBe('completed');
+    const current = await readGenerationRun(run.id, OWNER);
+    const doc = await documentStore(OWNER).loadDocument(current!.stageId!);
+    expect(doc?.scenes.map((scene) => scene.type)).toEqual([
+      'slide',
+      'slide',
+      'slide',
+      'slide',
+      'interactive',
+      'quiz',
+    ]);
+    expect(base.calls.sceneActions.map((call) => (call.outline as SceneOutline).title)).toEqual([
+      'Intro',
+      'Body',
+      'End',
+    ]);
+    expect(base.calls.sceneActions[1]?.previousSpeeches).toEqual(['Say Intro']);
+  });
+
   it('writes the course for the owner a run belongs to now, across two claims mid-run', async () => {
     const anonymous = 'anon:5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b';
     const middle = 'user:merge-middle';

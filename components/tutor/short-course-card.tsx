@@ -60,17 +60,17 @@ export function ShortCourseCard({
                   : course.interactiveSceneId && !course.quizSceneId
                     ? '互动已就绪，测验还在生成。'
                     : canOpen
-                      ? '第一节已就绪，后续内容继续生成。'
+                      ? '导读已就绪，课堂内容继续生成。'
                       : explanation
-                        ? '互动和测验正在后台生成。'
-                        : '正在准备第一节，你可以继续聊。'}
+                        ? '课堂内容正在后台生成。'
+                        : '正在准备课堂，你可以继续聊。'}
             {course.total > 0 ? ' · ' + course.ready + '/' + course.total + ' 节已就绪' : ''}
           </p>
           <div className={styles.actions}>
             {canOpen && (
               <Button asChild size="touch">
                 <Link href={href}>
-                  {done ? '进入课堂' : '先学第一节'} <ArrowRight size={16} />
+                  {done ? '进入课堂' : '打开课堂'} <ArrowRight size={16} />
                 </Link>
               </Button>
             )}
@@ -111,9 +111,7 @@ export function ShortCourseCard({
       ) : (
         <>
           <p className={styles.muted}>
-            {explanation && busy
-              ? '正在准备互动和测验。'
-              : '围绕这个问题讲一个概念，动手试一次，再做一道检查题。'}
+            {explanation && busy ? '正在准备课堂。' : '按问题和追问分节讲解，再动手练习和测验。'}
           </p>
           <Button
             type="button"

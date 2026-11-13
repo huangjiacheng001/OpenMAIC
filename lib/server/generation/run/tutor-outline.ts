@@ -77,6 +77,35 @@ export function tutorExplanationOutline(
   return outlines.map((item, order) => ({ ...item, order }));
 }
 
+/** Keep the classroom's lesson plan, adding the tutor's already-written introduction. */
+export function tutorFullOutlines(
+  explanation: ShortCourseExplanation,
+  planned: SceneOutline[],
+): SceneOutline[] {
+  const slides = planned.filter((scene) => scene.type === 'slide').slice(0, 4);
+  if (slides.length < 2) throw new Error('The short course outline needs at least two lessons');
+
+  const [intro, , fallbackActivity, fallbackQuiz] = tutorExplanationOutline(explanation, true);
+  const activity = planned.find((scene) => scene.type === 'interactive') ?? fallbackActivity;
+  const quiz = planned.find((scene) => scene.type === 'quiz') ?? fallbackQuiz;
+  return [
+    { ...intro, title: '导读' },
+    ...slides,
+    activity,
+    {
+      ...quiz,
+      quizConfig: {
+        ...fallbackQuiz.quizConfig!,
+        difficulty: quiz.quizConfig?.difficulty ?? 'easy',
+      },
+    },
+  ].map(({ mediaGenerations: _media, suggestedImageIds: _images, ...scene }, order) => ({
+    ...scene,
+    id: order === 0 ? 'short-slide' : `short-course-${order}`,
+    order,
+  }));
+}
+
 export function tutorExplanationSlide(
   explanation: ShortCourseExplanation,
 ): SceneContentResult['content'] {

@@ -83,8 +83,8 @@ export interface GenerationRunInput {
   format?: 'tutor-short';
   /** Reuse the completed tutoring explanation for the first scene. Older runs omit it. */
   tutorExplanation?: ShortCourseExplanation;
-  /** New tutor runs add a native classroom lesson after the immediate explanation. */
-  tutorCourseware?: true;
+  /** Retain the one-page courseware format for existing runs. */
+  tutorCourseware?: true | 'full';
   /** Owner-library uploads (`POST /api/materials`), in order. */
   materialIds: string[];
   interactive: boolean;

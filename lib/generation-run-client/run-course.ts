@@ -43,7 +43,15 @@ export function mergeServerScenes(
   const orders = new Set(scenes.map((scene) => scene.order));
   const arrived = fresh.filter((scene) => !known.has(scene.id)).sort((a, b) => a.order - b.order);
   let currentSceneId = state.currentSceneId;
-  if (currentSceneId === PENDING_SCENE_ID && arrived.length > 0) currentSceneId = arrived[0]!.id;
+  if (currentSceneId === PENDING_SCENE_ID && arrived.length > 0) {
+    if (state.scenes.some((scene) => scene.tutorExplanation)) {
+      const existingOrders = new Set(state.scenes.map((scene) => scene.order));
+      const next = state.outlines.find((outline) => !existingOrders.has(outline.order));
+      currentSceneId = arrived.find((scene) => scene.order === next?.order)?.id ?? PENDING_SCENE_ID;
+    } else {
+      currentSceneId = arrived[0]!.id;
+    }
+  }
   if (currentSceneId === null) currentSceneId = scenes[0]?.id ?? null;
   return {
     scenes,

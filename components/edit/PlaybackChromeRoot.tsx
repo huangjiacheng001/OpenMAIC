@@ -168,7 +168,7 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
       ? scenes.find((scene) => scene.type === 'interactive')
       : undefined;
     const tutorLesson = isTutorCourse
-      ? scenes.find((scene) => scene.outlineId === 'short-worked-example')
+      ? scenes.find((scene) => scene.type === 'slide' && scene.order > 0 && !scene.tutorExplanation)
       : undefined;
     const coursewareReferenceEnabled = isCoursewareReferenceEnabled();
     const [elementPickActive, setElementPickActiveState] = useState(false);
@@ -958,7 +958,16 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
                     return;
                   }
                   autoStartRef.current = true;
-                  stageState.setCurrentSceneId(allScenes[idx + 1].id);
+                  const nextScene = allScenes[idx + 1];
+                  const waitingForEarlierChapter =
+                    allScenes.some((scene) => scene.tutorExplanation) &&
+                    stageState.generatingOutlines.some(
+                      (outline) =>
+                        outline.order > currentScene.order && outline.order < nextScene.order,
+                    );
+                  stageState.setCurrentSceneId(
+                    waitingForEarlierChapter ? PENDING_SCENE_ID : nextScene.id,
+                  );
                 } else if (
                   idx === allScenes.length - 1 &&
                   stageState.generatingOutlines.length > 0
@@ -1266,13 +1275,29 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
     const handleNextScene = useCallback(() => {
       if (isPendingScene) return; // Already on pending, nowhere to go
       const currentIndex = scenes.findIndex((s) => s.id === currentSceneId);
-      if (currentIndex < scenes.length - 1) {
-        void gatedSceneSwitch(scenes[currentIndex + 1].id);
+      const nextScene = scenes[currentIndex + 1];
+      if (nextScene) {
+        const waitingForEarlierChapter =
+          isTutorCourse &&
+          generatingOutlines.some(
+            (outline) =>
+              outline.order > (scenes[currentIndex]?.order ?? -1) &&
+              outline.order < nextScene.order,
+          );
+        void gatedSceneSwitch(waitingForEarlierChapter ? PENDING_SCENE_ID : nextScene.id);
       } else if (canAdvanceToPendingSlot) {
         // On last real scene → advance to pending slot (generating or completion page)
         void gatedSceneSwitch(PENDING_SCENE_ID);
       }
-    }, [currentSceneId, gatedSceneSwitch, canAdvanceToPendingSlot, isPendingScene, scenes]);
+    }, [
+      currentSceneId,
+      gatedSceneSwitch,
+      canAdvanceToPendingSlot,
+      isPendingScene,
+      scenes,
+      isTutorCourse,
+      generatingOutlines,
+    ]);
 
     const currentSceneIndex = isPendingScene
       ? scenes.length
@@ -1770,7 +1795,11 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
                     variant="ghost"
                     size="touch"
                     type="button"
-                    aria-current={currentSceneId === tutorLesson.id ? 'step' : undefined}
+                    aria-current={
+                      currentScene?.type === 'slide' && !currentScene.tutorExplanation
+                        ? 'step'
+                        : undefined
+                    }
                     className="text-primary-text aria-current:bg-primary-soft"
                     onClick={() => void gatedSceneSwitch(tutorLesson.id)}
                   >

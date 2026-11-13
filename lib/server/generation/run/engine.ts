@@ -47,6 +47,7 @@ import {
   assembleTutorShortScene,
   tutorExplanationOutline,
   tutorExplanationSlide,
+  tutorFullOutlines,
   tutorShortOutlines,
 } from './tutor-outline';
 import type { Queryable } from '@openmaic/storage/document/pg';
@@ -413,6 +414,7 @@ async function executeClaimedRun(
   const input = run.input;
   const explanation = input.format === 'tutor-short' ? input.tutorExplanation : undefined;
   const withCourseware = Boolean(explanation && input.tutorCourseware);
+  const fullCourse = explanation && input.tutorCourseware === 'full' ? explanation : undefined;
   // The owner the run works for now, refreshed at every step boundary: a
   // claim may move the run's owner into an account while it generates.
   let owner = await currentOwnerOf(run.ownerId);
@@ -425,7 +427,7 @@ async function executeClaimedRun(
     for (const checkpoint of change.steps ?? []) steps.set(checkpoint.id, checkpoint.output);
     // Only a commit that changes the row moves the engine's view of it: the
     // content generated ahead and the retry events commit concurrently.
-    if (change.patch) run = committed;
+    if (change.patch && committed.seq >= run.seq) run = committed;
     if (change.events?.length) reportCommittedRunEvents(committed, change.events, currentOwnerOf);
   };
   const stepContext: StepContext = { log, signal };
@@ -551,12 +553,21 @@ async function executeClaimedRun(
   } = { prewarm: null };
   const prewarmAbort = new AbortController();
   const prewarmSignal = AbortSignal.any([signal, prewarmAbort.signal]);
+  const quizIndex = () => outline().outlines.findIndex((scene) => scene.type === 'quiz');
   const startContentPrewarm = (fromIndex: number) => {
     const concurrency = withCourseware ? 3 : explanation ? 2 : services.parallelSceneConcurrency();
     const sceneCount = outline().outlines.length;
     const pending: number[] = [];
     for (let index = fromIndex; index < sceneCount; index += 1) {
       if (!steps.has(sceneStepId(index, 'content'))) pending.push(index);
+    }
+    if (fullCourse) {
+      const assessment = pending.indexOf(quizIndex());
+      if (assessment !== -1) pending.splice(assessment, 1);
+      const activity = pending.findIndex(
+        (index) => outline().outlines[index]?.type === 'interactive',
+      );
+      if (activity > 1) pending.splice(1, 0, ...pending.splice(activity, 1));
     }
     if (concurrency <= 1 || pending.length <= 1) return;
     const promises = lazyBoundedMap(
@@ -600,7 +611,7 @@ async function executeClaimedRun(
 
   // ── One step ──
   /** What a step commits; `null` for a scene skipped in parallel mode. */
-  const runStep = async (step: RunStep): Promise<StepCommit | null> => {
+  const runStep = async (step: RunStep, stepSignal = signal): Promise<StepCommit | null> => {
     const stepId = step.id;
     const done = (value: unknown, extra: Partial<StepCommit> = {}): StepCommit => ({
       step: { id: stepId, output: value },
@@ -721,7 +732,7 @@ async function executeClaimedRun(
           // Committed when it completed; nothing more to record.
           return {};
         }
-        return done(await generateContent(step.sceneIndex, signal));
+        return done(await generateContent(step.sceneIndex, stepSignal));
       }
 
       case 'actions': {
@@ -731,7 +742,7 @@ async function executeClaimedRun(
         const effectiveOutline = content.effectiveOutline || outlines[index]!;
         if (
           input.format === 'tutor-short' &&
-          (!withCourseware || index === 0 || effectiveOutline.type === 'quiz')
+          (!withCourseware || index === 0 || (!fullCourse && effectiveOutline.type === 'quiz'))
         ) {
           const result = assembleTutorShortScene(
             effectiveOutline,
@@ -748,7 +759,7 @@ async function executeClaimedRun(
         const userProfile = learnerProfileText(input);
         const result = await withRouteRetry(
           () =>
-            withDeadline(stepId, STEP_DEADLINES_MS.sceneActions, signal, async (callSignal) => {
+            withDeadline(stepId, STEP_DEADLINES_MS.sceneActions, stepSignal, async (callSignal) => {
               const generated = await services.sceneActions(
                 owner,
                 {
@@ -771,14 +782,14 @@ async function executeClaimedRun(
               assertValidScene(generated.scene, stepId);
               return generated;
             }),
-          retryOptions(stepId, index, 500),
+          retryOptions(stepId, index, 500, stepSignal),
         );
         return done(result);
       }
 
       case 'narration':
         // Narration commits itself, with the scene's document write.
-        await narrateScene(step.sceneIndex, stepId);
+        await narrateScene(step.sceneIndex, stepId, stepSignal);
         return {};
     }
   };
@@ -802,7 +813,7 @@ async function executeClaimedRun(
   };
 
   const runOutlineStep = async (stepId: string): Promise<StepCommit> => {
-    if (explanation) {
+    if (explanation && !fullCourse) {
       return commitOutline(stepId, {
         outlines: tutorExplanationOutline(explanation, withCourseware),
         languageDirective: '用简体中文，适合学生当前年级。',
@@ -878,8 +889,11 @@ async function executeClaimedRun(
     if (!normalized.ok) throw new Error(`The generated outline is unusable: ${normalized.message}`);
     result = {
       ...result,
-      outlines:
-        input.format === 'tutor-short' ? tutorShortOutlines(normalized.value) : normalized.value,
+      outlines: fullCourse
+        ? tutorFullOutlines(fullCourse, normalized.value)
+        : input.format === 'tutor-short'
+          ? tutorShortOutlines(normalized.value)
+          : normalized.value,
     };
     return commitOutline(stepId, result);
   };
@@ -1027,7 +1041,11 @@ async function executeClaimedRun(
     return { agents: result, stage };
   };
 
-  const narrateScene = async (sceneIndex: number, stepId: string): Promise<void> => {
+  const narrateScene = async (
+    sceneIndex: number,
+    stepId: string,
+    stepSignal: AbortSignal,
+  ): Promise<void> => {
     const actions = output<SceneActionsResult>(sceneStepId(sceneIndex, 'actions'))!;
     const scene: Scene = structuredClone(actions.scene) as Scene;
     if (sceneIndex === 0 && explanation) {
@@ -1083,7 +1101,7 @@ async function executeClaimedRun(
       try {
         return await withRouteRetry(
           () =>
-            withDeadline(stepId, STEP_DEADLINES_MS.narrationClip, signal, (callSignal) =>
+            withDeadline(stepId, STEP_DEADLINES_MS.narrationClip, stepSignal, (callSignal) =>
               services.narrateClip(
                 owner,
                 {
@@ -1099,7 +1117,7 @@ async function executeClaimedRun(
                 { log, signal: callSignal },
               ),
             ),
-          retryOptions(stepId, sceneIndex, 400),
+          retryOptions(stepId, sceneIndex, 400, stepSignal),
         );
       } catch (error) {
         // The bound voice's clone is gone: one retry with a different voice.
@@ -1260,10 +1278,10 @@ async function executeClaimedRun(
         inTransaction,
       });
     }
-    run = committed!;
+    if (committed!.seq >= run.seq) run = committed!;
     steps.set(stepId, change.step!.output);
     for (const checkpoint of change.steps ?? []) steps.set(checkpoint.id, checkpoint.output);
-    reportCommittedRunEvents(run, change.events ?? [], currentOwnerOf);
+    reportCommittedRunEvents(committed!, change.events ?? [], currentOwnerOf);
   };
 
   // ── Media ──
@@ -1816,12 +1834,39 @@ async function executeClaimedRun(
     if (outcome !== 'resume') return outcome;
   }
 
+  // The course's assessment can be attempted before the lecture finishes. It
+  // runs the same three steps as the other scenes, without advancing their cursor.
+  let quizWork: Promise<void> | undefined;
+  let quizFailure: StepFailedError | undefined;
+  const startQuiz = (index: number) =>
+    (async () => {
+      for (const kind of SCENE_STEP_KINDS) {
+        const id = sceneStepId(index, kind);
+        if (steps.has(id)) continue;
+        try {
+          const change = await runStep({ id, kind, sceneIndex: index }, prewarmSignal);
+          if (change?.step) await commit(change);
+        } catch (error) {
+          quizFailure = new StepFailedError(id, error);
+          return;
+        }
+      }
+    })();
+
   try {
     for (;;) {
       if (signal.aborted) return 'interrupted';
       owner = await currentOwnerOf(run.ownerId);
       let preferredScene: number | undefined;
-      if (explanation && run.state === 'generating' && courseExists()) {
+      const concurrentQuizSteps: string[] = [];
+      if (fullCourse && run.state === 'generating' && courseExists()) {
+        const index = quizIndex();
+        if (index > 0) {
+          quizWork ??= startQuiz(index);
+          concurrentQuizSteps.push(...SCENE_STEP_KINDS.map((kind) => sceneStepId(index, kind)));
+        }
+      }
+      if (explanation && !fullCourse && run.state === 'generating' && courseExists()) {
         // The short course has no dependencies between its activity and quiz.
         // Persist whichever is ready first while preserving their outline order.
         if (!ahead.prewarm) startContentPrewarm(1);
@@ -1844,7 +1889,7 @@ async function executeClaimedRun(
       const advance = advanceRun({
         state: run.state,
         runInput: input,
-        completed: new Set([...steps.keys(), ...skippedStepIds()]),
+        completed: new Set([...steps.keys(), ...skippedStepIds(), ...concurrentQuizSteps]),
         sceneCount: run.outline?.outlines.length ?? 0,
         preferredScene,
       });
@@ -1864,6 +1909,18 @@ async function executeClaimedRun(
       // The media pass runs alongside the scenes once the course exists.
       if (run.state === 'generating' && courseExists()) await ensureMediaLane();
       if (advance.kind === 'complete') {
+        await quizWork;
+        if (quizFailure) {
+          const { cause } = quizFailure;
+          if (
+            signal.aborted ||
+            isAbortError(cause) ||
+            isGenerationRunLeaseLostError(cause) ||
+            cause instanceof RunCourseDeletedError
+          )
+            throw cause;
+          throw quizFailure;
+        }
         const [failedIndex, failure] =
           [...skippedScenes.entries()].sort(([a], [b]) => a - b)[0] ?? [];
         if (failedIndex !== undefined) {
@@ -1949,7 +2006,7 @@ async function executeClaimedRun(
   } finally {
     prewarmAbort.abort();
     lane.abort.abort();
-    if (ahead.prewarm) await Promise.allSettled(ahead.prewarm.values());
+    await Promise.allSettled([...(ahead.prewarm?.values() ?? []), quizWork]);
     if (lane.running) await lane.running;
   }
 }

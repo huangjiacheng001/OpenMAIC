@@ -11,8 +11,8 @@ const plugins = { math: createSafeMathPlugin() };
 
 export function ShortCourseExplanation({ explanation }: { explanation: Explanation }) {
   return (
-    <section aria-label="第一节讲解" className="min-w-0 space-y-4 break-words text-card-foreground">
-      <h2 className="text-lg font-semibold">第一节 · 讲解</h2>
+    <section aria-label="课程导读" className="min-w-0 space-y-4 break-words text-card-foreground">
+      <h2 className="text-lg font-semibold">课程导读</h2>
       {explanation.sections.map(({ question, answer }, index) => (
         <div key={index} className="space-y-2">
           <h3 className="text-sm font-semibold text-primary-text">{question}</h3>

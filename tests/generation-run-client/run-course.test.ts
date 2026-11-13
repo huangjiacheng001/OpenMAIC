@@ -45,6 +45,24 @@ describe('scenes the run appended, in the classroom', () => {
     ).toBe('s2');
   });
 
+  it('does not jump from a pending tutor lecture to a quiz that arrives first', () => {
+    const waiting = {
+      ...base,
+      scenes: [{ ...base.scenes[0]!, tutorExplanation: true as const }],
+      currentSceneId: PENDING_SCENE_ID,
+    };
+    const quiz = { ...scene('quiz', 3), type: 'quiz' as const } as Scene;
+    const partial = mergeServerScenes(waiting, [quiz], 'stage-1', () => false)!;
+    expect(partial.currentSceneId).toBe(PENDING_SCENE_ID);
+    const next = mergeServerScenes(
+      { ...waiting, ...partial },
+      [scene('s2', 2)],
+      'stage-1',
+      () => false,
+    )!;
+    expect(next.currentSceneId).toBe('s2');
+  });
+
   it('keep a scene this browser changed and has not saved', () => {
     const changed = { ...base, scenes: [scene('s1', 1, 'learner progress')] };
     expect(
