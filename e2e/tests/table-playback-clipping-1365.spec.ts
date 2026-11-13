@@ -31,7 +31,7 @@ async function seedTableClassroom(page: Page): Promise<string> {
     { settings: SETTINGS_STORAGE },
   );
 
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
 
   const stageId = uniqueStageId(STAGE_PREFIX);
   const now = Date.now();

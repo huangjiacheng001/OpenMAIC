@@ -16,7 +16,7 @@ async function seedDatabase(page: import('@playwright/test').Page): Promise<stri
     localStorage.setItem('locale', 'en-US');
   }, SETTINGS_STORAGE);
 
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
 
   const stageId = uniqueStageId(TEST_STAGE_PREFIX);
   const now = Date.now();

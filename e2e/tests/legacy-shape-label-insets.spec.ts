@@ -13,7 +13,7 @@ test('legacy shape labels keep imported insets through editing and reload', asyn
     },
     createSettingsStorage({ sidebarCollapsed: false }),
   );
-  await page.goto('/');
+  await page.goto('/courses');
   const stageId = uniqueStageId('e2e-label-insets');
   const scene = createMockScene(stageId);
   const labels = [

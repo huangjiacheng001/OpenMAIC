@@ -211,7 +211,7 @@ function GenerationPreviewContent() {
 
   // Leaving does not stop the run: its course card goes on showing it.
   const goBackToHome = () => {
-    router.push('/');
+    router.push('/courses');
   };
 
   // Triggered when the user clicks the outline card, mid-stream or on the
@@ -277,7 +277,7 @@ function GenerationPreviewContent() {
             <div className="size-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" />
             <h2 className="text-xl font-semibold">{t('generation.runLoadFailed')}</h2>
             <p className="text-sm text-muted-foreground">{t('generation.runLoadRetrying')}</p>
-            <Button variant="outline" onClick={() => router.push('/')} className="w-full">
+            <Button variant="outline" onClick={() => router.push('/courses')} className="w-full">
               <ArrowLeft className="size-4 mr-2" />
               {t('generation.backToHome')}
             </Button>
@@ -307,7 +307,7 @@ function GenerationPreviewContent() {
             <AlertCircle className="size-12 text-muted-foreground mx-auto" />
             <h2 className="text-xl font-semibold">{t('generation.sessionNotFound')}</h2>
             <p className="text-sm text-muted-foreground">{t('generation.sessionNotFoundDesc')}</p>
-            <Button onClick={() => router.push('/')} className="w-full">
+            <Button onClick={() => router.push('/courses')} className="w-full">
               <ArrowLeft className="size-4 mr-2" />
               {t('generation.backToHome')}
             </Button>

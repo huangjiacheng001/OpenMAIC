@@ -23,7 +23,7 @@ async function openSeededEditor(page: Page): Promise<string> {
     localStorage.setItem('locale', 'en-US');
   }, SETTINGS_STORAGE);
 
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
   const stageId = uniqueStageId('e2e-reload-save');
   const now = Date.now();
   await seedServerDocument(page, {

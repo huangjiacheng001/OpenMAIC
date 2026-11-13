@@ -44,7 +44,7 @@ export async function seedDatabase(
     localStorage.setItem('maic:account:settings-storage', settings);
   }, JSON.stringify(settings));
 
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
   const now = Date.now();
   await seedServerDocument(page, {
     stage: {

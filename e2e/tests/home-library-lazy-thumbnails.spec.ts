@@ -45,7 +45,7 @@ async function seedCourse(page: Page, stageId: string, name: string, updatedAt: 
 }
 
 async function seedLibrary(page: Page, prefix: string): Promise<string[]> {
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
   const names: string[] = [];
   const now = Date.now();
   for (let i = 0; i < COURSE_COUNT; i++) {
@@ -104,7 +104,7 @@ test.describe('Home library loading', () => {
       while (held.length) await held.shift()!.continue();
     };
 
-    await page.goto('/');
+    await page.goto('/courses');
     const cards = page.locator('.group.cursor-pointer').filter({ hasText: prefix });
 
     // The whole list renders while no course content has been served.
@@ -149,7 +149,7 @@ test.describe('Home library loading', () => {
     page,
   }) => {
     const prefix = `Cached ${crypto.randomUUID().slice(0, 6)}`;
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/courses', { waitUntil: 'networkidle' });
     const now = Date.now();
     const ids = [0, 1, 2].map(() => uniqueStageId('e2e-cached-thumbnail'));
     for (const [i, id] of ids.entries()) {
@@ -168,7 +168,7 @@ test.describe('Home library loading', () => {
       await expect(cards.locator('[data-thumbnail-state="loading"]')).toHaveCount(0);
     };
 
-    await page.goto('/');
+    await page.goto('/courses');
     await loaded();
     expect(documentReads.filter((id) => ids.includes(id)).sort()).toEqual([...ids].sort());
     await expect.poll(() => cachedThumbnailCount(page)).toBeGreaterThanOrEqual(ids.length);

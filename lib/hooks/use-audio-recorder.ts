@@ -38,12 +38,13 @@ async function asrSetup(locale: string): Promise<{
 export interface UseAudioRecorderOptions {
   onTranscription?: (text: string) => void;
   onError?: (error: string) => void;
+  onInterimTranscription?: (text: string) => void;
   /** When true and using browser-native ASR, recognition stays active until explicitly stopped. */
   continuous?: boolean;
 }
 
 export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
-  const { onTranscription, onError, continuous = false } = options;
+  const { onTranscription, onInterimTranscription, onError, continuous = false } = options;
   const { locale } = useI18n();
   const localeRef = useRef(locale);
   useEffect(() => {
@@ -220,7 +221,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
           recognition.lang = asrLanguage;
           recognition.continuous = continuous;
-          recognition.interimResults = false;
+          recognition.interimResults = Boolean(onInterimTranscription);
 
           recognition.onstart = () => {
             if (!isCurrentSession(session)) return;
@@ -246,12 +247,14 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }) => {
             if (!isCurrentSession(session)) return;
             let transcript = '';
+            let interim = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
               const result = event.results[i];
-              if (result.isFinal && result[0]?.transcript) {
-                transcript += result[0].transcript;
-              }
+              const text = result[0]?.transcript ?? '';
+              if (result.isFinal) transcript += text;
+              else interim += text;
             }
+            onInterimTranscription?.(interim);
             if (transcript) {
               onTranscription?.(transcript);
             }
@@ -303,6 +306,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           recognition.onend = () => {
             if (!isCurrentSession(session)) return;
             speechRecognitionRef.current = null;
+            setIsProcessing(false);
             setIsStarting(false);
             busyRef.current = false;
             setIsRecording(false);
@@ -384,6 +388,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     onError,
     transcribeAudio,
     continuous,
+    onInterimTranscription,
     locale,
     isCurrentSession,
     releaseResources,
@@ -393,6 +398,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   // Explicit stop preserves the final transcription; cancellation discards it.
   const stopRecording = useCallback(() => {
     if (speechRecognitionRef.current) {
+      setIsProcessing(true);
       speechRecognitionRef.current.stop();
       setIsStarting(false);
       setIsRecording(false);

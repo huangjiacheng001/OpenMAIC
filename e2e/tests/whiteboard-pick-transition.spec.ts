@@ -37,7 +37,7 @@ async function seedSlideWithBoard(page: Page, actions: unknown[]): Promise<strin
       }),
     );
   });
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
 
   const stageId = uniqueStageId('e2e-whiteboard-pick-transition');
   const now = Date.now();

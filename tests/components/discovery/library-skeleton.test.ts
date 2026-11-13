@@ -38,7 +38,7 @@ describe('LibrarySkeleton', () => {
   it('uses the loaded grid and the cards’ 16:9 thumbnail and title row', () => {
     const host = render();
     const grid = host.querySelector('[data-library-skeleton] > div')!;
-    // The classes of the loaded course grid in app/page.tsx.
+    // The classes of the loaded course grid in app/courses/page.tsx.
     expect(grid.className).toBe('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8');
     for (const tile of host.querySelectorAll('[data-skeleton-tile]')) {
       const [thumbnail, row] = [...tile.children];

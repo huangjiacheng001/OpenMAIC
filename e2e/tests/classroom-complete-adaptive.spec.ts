@@ -79,7 +79,7 @@ test.describe('Classroom complete adaptive layout', () => {
   test('shrinks on short viewports, re-expands on tall ones, never clips the trophy', async ({
     page,
   }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/courses', { waitUntil: 'networkidle' });
     await seedServerDocument(page, {
       ...CLASSROOM_PAYLOAD,
       outline: {

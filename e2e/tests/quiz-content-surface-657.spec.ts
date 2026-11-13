@@ -26,7 +26,7 @@ async function seedQuiz(page: Page, prefix: string, questions: QuizQuestion[]): 
   await page.addInitScript((settings) => {
     localStorage.setItem('maic:account:settings-storage', settings);
   }, SETTINGS_STORAGE);
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
   const stageId = uniqueStageId(prefix);
   const now = Date.now();
   await seedServerDocument(page, {

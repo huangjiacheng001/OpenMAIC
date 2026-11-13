@@ -23,7 +23,7 @@ async function openSeededEditor(page: Page): Promise<void> {
     delete (window as { TouchEvent?: unknown }).TouchEvent;
   }, SETTINGS_STORAGE);
 
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/courses', { waitUntil: 'networkidle' });
   const stageId = uniqueStageId('e2e-drag-no-touch');
   const now = Date.now();
   await seedServerDocument(page, {

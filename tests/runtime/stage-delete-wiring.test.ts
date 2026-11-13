@@ -32,7 +32,7 @@ vi.mock('@/lib/document-store', () => ({
   })),
 }));
 
-// The live classroom-deletion flow (app/page.tsx) goes through
+// The live classroom-deletion flow (app/courses/page.tsx) goes through
 // `deleteStageData` in stage-storage. Mock its module dependencies and run the
 // REAL function to prove it cascades into the runtime layer.
 vi.mock('@/lib/runtime/store', () => ({
