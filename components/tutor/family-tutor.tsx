@@ -9,6 +9,7 @@ import {
   ArrowUp,
   BookOpen,
   Camera,
+  Calculator,
   ImagePlus,
   Mic,
   Plus,
@@ -18,6 +19,8 @@ import {
   X,
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { GroupPractice } from './group-practice';
 import { createSafeMathPlugin } from '@/lib/markdown/safe-math-plugin';
 import { useAudioRecorder, ASR_NOT_CONFIGURED_MESSAGE } from '@/lib/hooks/use-audio-recorder';
 import { MAX_TUTOR_TEXT } from '@/lib/tutor/protocol';
@@ -320,9 +323,21 @@ export function FamilyTutor() {
                 <button type="button" onClick={() => focusWith('再提示一点')}>
                   再提示一点
                 </button>
-                <button type="button" onClick={() => focusWith('再练一道类似的题')}>
-                  再练一道
-                </button>
+                {/分组|按.{0,8}一组|组数数/.test(last.question + ' ' + last.answer) ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button type="button">练习分组数数</button>
+                    </DialogTrigger>
+                    <DialogContent className={styles.practiceDialog} aria-describedby={undefined}>
+                      <DialogTitle className={styles.practiceDialogTitle}>按组数数</DialogTitle>
+                      <GroupPractice inDialog />
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <button type="button" onClick={() => focusWith('再练一道类似的题')}>
+                    再练一道
+                  </button>
+                )}
                 <button type="button" aria-label="朗读回答" onClick={() => readAloud(last.answer)}>
                   <Volume2 size={16} />
                 </button>
@@ -512,6 +527,10 @@ export function FamilyTutor() {
               <ArrowDown className={styles.exampleArrow} size={15} />
             </button>
           ))}
+          <Link href="/practice" prefetch={false} className={styles.practiceEntry}>
+            <Calculator size={18} />
+            按组数数练习
+          </Link>
         </div>
       )}
     </main>

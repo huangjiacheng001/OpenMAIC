@@ -429,3 +429,202 @@
     padding-inline: 7px;
   }
 }
+
+.practiceEntry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 40px;
+  padding: 5px 12px;
+  border: 1px solid var(--tutor-line);
+  border-radius: 10px;
+  color: var(--tutor-green);
+  font-size: 14px;
+}
+
+.practiceEntry {
+  grid-column: 1 / -1;
+  margin-inline: auto;
+}
+
+.practiceEntry:hover {
+  background: #eaf1e7;
+}
+
+.practicePage {
+  display: grid;
+  gap: 16px;
+  width: min(calc(100% - 32px), 650px);
+  margin: 16px auto 40px;
+}
+
+.practiceCard {
+  display: grid;
+  gap: 14px;
+  padding: clamp(16px, 4vw, 28px);
+  border: 1px solid var(--tutor-line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.practiceCard h1 {
+  font-size: clamp(24px, 4vw, 31px);
+  font-weight: 690;
+}
+
+.practiceCard h2 {
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.practicePrompt {
+  font-size: 17px;
+  font-weight: 550;
+}
+
+.practiceGroups,
+.practiceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practiceGroup {
+  display: grid;
+  grid-template-columns: repeat(5, 9px);
+  grid-auto-rows: 9px;
+  align-content: center;
+  gap: 5px;
+  min-height: 42px;
+  padding: 8px;
+  border-radius: 9px;
+  background: #edf4e9;
+}
+
+.practiceGroup span {
+  border-radius: 50%;
+  background: #348060;
+}
+
+.practiceActions button,
+.practiceForm button,
+.practiceReviews button {
+  min-height: 42px;
+  padding: 5px 12px;
+  border: 1px solid var(--tutor-line);
+  border-radius: 9px;
+  font-size: 14px;
+}
+
+.practiceActions button[aria-pressed='true'] {
+  background: #e6f1e7;
+  border-color: #83ad92;
+  color: var(--tutor-green);
+  font-weight: 650;
+}
+
+.practiceActions .practicePrimary,
+.practiceForm .practicePrimary {
+  background: var(--tutor-green);
+  border-color: var(--tutor-green);
+  color: #fff;
+  font-weight: 650;
+}
+
+.practiceForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.practiceForm input {
+  width: 74px;
+  min-height: 42px;
+  border: 1px solid #8b9e90;
+  border-radius: 9px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.practiceForm input:focus-visible {
+  outline: 2px solid var(--tutor-green);
+  outline-offset: 2px;
+}
+
+.practiceHint {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  color: var(--tutor-green);
+  font-size: 14px;
+}
+
+.practiceFeedback {
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #edf4e9;
+  color: #234f37;
+  line-height: 1.55;
+}
+
+.practiceMuted,
+.practiceError {
+  font-size: 14px;
+}
+
+.practiceMuted {
+  color: var(--tutor-muted);
+}
+
+.practiceError {
+  color: #873a1e;
+}
+
+.practiceReviews {
+  display: grid;
+  gap: 7px;
+}
+
+.practiceReviews li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--tutor-line);
+  padding-top: 6px;
+}
+
+.practiceGroup[aria-pressed='true'] {
+  outline: 2px solid #348060;
+  outline-offset: -2px;
+  background: #d4ead9;
+}
+
+.practiceDialog {
+  --tutor-ink: #222c25;
+  --tutor-muted: #5e6b61;
+  --tutor-green: #255e43;
+  --tutor-line: #dbe4d9;
+  width: min(calc(100% - 24px), 650px);
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  gap: 14px;
+  background: #f6f8f2;
+  color: var(--tutor-ink);
+  color-scheme: light;
+}
+
+.practiceDialogTitle {
+  font-size: 22px;
+  font-weight: 680;
+}
+
+.practiceDialogBody {
+  display: grid;
+  gap: 12px;
+}
