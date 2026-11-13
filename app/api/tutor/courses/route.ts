@@ -120,13 +120,22 @@ export async function GET(req: NextRequest) {
     }
     if (stage) {
       // Only show the original question to the profile or browser that started it.
-      const { rows } = await pool.query<{ threadId: string; exchangeId: string }>(
-        `SELECT l.thread_id AS "threadId", l.exchange_id AS "exchangeId"
+      const { rows } = await pool.query<{
+        threadId: string;
+        exchangeId: string;
+        explanation?: unknown;
+      }>(
+        `SELECT l.thread_id AS "threadId", l.exchange_id AS "exchangeId",
+          CASE WHEN $4 THEN r.input->'tutorExplanation' END AS explanation
           FROM tutor_short_courses l JOIN generation_runs r ON r.id=l.run_id AND r.owner_id=l.owner_id
           WHERE l.owner_id=$1 AND l.scope=$2 AND r.stage_id=$3 AND r.state<>'ended'`,
-        [ownerId, scope, stage],
+        [ownerId, scope, stage, query.get('explanation') === '1'],
       );
-      return response(headers, { source: rows[0] ?? null });
+      const origin = rows[0];
+      return response(headers, {
+        source: origin ? { threadId: origin.threadId, exchangeId: origin.exchangeId } : null,
+        ...(origin?.explanation ? { explanation: origin.explanation } : {}),
+      });
     }
     const links = await lookupThread(pool, ownerId, scope, thread!);
     const runs = await Promise.all(links.map((link) => readGenerationRun(link.run_id, ownerId)));
@@ -212,6 +221,7 @@ export async function POST(req: NextRequest) {
         owner,
         {
           format: 'tutor-short',
+          tutorExplanation: { ...context.explanation, grade: child?.grade || '小学高年级' },
           requirement,
           materialIds: [],
           interactive: false,

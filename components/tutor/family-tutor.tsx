@@ -17,7 +17,7 @@ import {
   shortCourseIsActive,
   writeShortCourse,
 } from './short-course-client';
-import { canMakeShortCourse, type ShortCourse } from '@/lib/tutor/short-course';
+import { canMakeShortCourse, shortCourseContext, type ShortCourse } from '@/lib/tutor/short-course';
 import { SaveHomework } from './save-homework';
 import { useFamilySession } from './use-family-session';
 import { familyMessage, familyRead, familyWrite } from './family-client';
@@ -591,6 +591,7 @@ export function FamilyTutor({
                       course={course}
                       busy={courseBusy === exchange.id}
                       error={courseError?.id === exchange.id ? courseError.message : undefined}
+                      getExplanation={() => shortCourseContext(exchanges, exchange.id)?.explanation}
                       onStart={() => void generateCourse(exchange)}
                       onRetry={() => void generateCourse(exchange, course)}
                     />

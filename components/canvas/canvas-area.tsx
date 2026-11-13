@@ -75,16 +75,17 @@ export function CanvasArea({
   const { t } = useI18n();
   const inWorkbenchPanel = useInWorkbenchPanel();
   const showControls = mode === 'playback' && !whiteboardOpen;
+  const canPlaySlide = currentScene?.type === 'slide' && !currentScene.tutorExplanation;
   const showPlayHint =
     showControls &&
     engineState !== 'playing' &&
-    currentScene?.type === 'slide' &&
+    canPlaySlide &&
     !isLiveSession &&
     !isPendingScene;
 
   const handleSlideClick = useCallback(
     (e: React.MouseEvent) => {
-      if (!showControls || isLiveSession || currentScene?.type !== 'slide') return;
+      if (!showControls || isLiveSession || !canPlaySlide) return;
       // Don't trigger page play/pause when clicking inside a video element's visual area.
       // Video elements may be visually covered by other slide elements (e.g. text),
       // so we check click coordinates against all video element bounding rects.
@@ -103,7 +104,7 @@ export function CanvasArea({
       }
       onPlayPause();
     },
-    [showControls, isLiveSession, onPlayPause, currentScene?.type],
+    [showControls, isLiveSession, onPlayPause, canPlaySlide],
   );
 
   return (
@@ -120,12 +121,13 @@ export function CanvasArea({
         <StageViewport
           workbench={inWorkbenchPanel}
           fillContainer={
+            !!currentScene?.tutorExplanation ||
             currentScene?.type === 'interactive' ||
             (currentScene?.content.type === 'pbl' && !!currentScene.content.projectV3)
           }
           className={cn(
             'bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden relative transition-all duration-700',
-            showControls && !isLiveSession && currentScene?.type === 'slide' && 'cursor-pointer',
+            showControls && !isLiveSession && canPlaySlide && 'cursor-pointer',
             currentScene?.type === 'interactive'
               ? 'shadow-blue-200/50 dark:shadow-blue-900/50 ring-1 ring-blue-900/5 dark:ring-blue-500/10'
               : 'shadow-gray-200/50 dark:shadow-gray-800/50 ring-1 ring-gray-950/5 dark:ring-white/5',

@@ -1,5 +1,11 @@
 import type { HomeworkExchange } from './family';
 
+export type ShortCourseExplanation = {
+  title: string;
+  grade?: string;
+  sections: Array<{ question: string; answer: string }>;
+};
+
 export type ShortCourse = {
   id: string;
   exchangeId: string;
@@ -97,5 +103,14 @@ export function shortCourseContext(exchanges: readonly HomeworkExchange[], excha
       question: question.trim().slice(0, 1200),
       ...(problem ? { problem: problem.slice(0, 1200) } : {}),
     })),
+    explanation: {
+      title: questionOf(selected).slice(0, 80),
+      sections: included
+        .filter((exchange) => exchange.answer.trim())
+        .map((exchange) => ({
+          question: questionOf(exchange).slice(0, 4000),
+          answer: exchange.answer.trim().slice(0, 12000),
+        })),
+    } satisfies ShortCourseExplanation,
   };
 }

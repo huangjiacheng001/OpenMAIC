@@ -43,7 +43,12 @@
 import { ModelAuthorizationError } from '@/lib/server/model-config/model-authorization';
 import { audioFailureKind } from '@/lib/audio/provider-error';
 import { isAbortError } from '@openmaic/generation';
-import { assembleTutorShortScene, tutorShortOutlines } from './tutor-outline';
+import {
+  assembleTutorShortScene,
+  tutorExplanationOutline,
+  tutorExplanationSlide,
+  tutorShortOutlines,
+} from './tutor-outline';
 import type { Queryable } from '@openmaic/storage/document/pg';
 
 import { pickNarratorAgent, resolveServerAgentVoiceOptions } from '@/lib/audio/agent-voice-options';
@@ -406,6 +411,7 @@ async function executeClaimedRun(
   const { services, signal } = options;
   let run: StoredRun = claim.run;
   const input = run.input;
+  const explanation = input.format === 'tutor-short' ? input.tutorExplanation : undefined;
   // The owner the run works for now, refreshed at every step boundary: a
   // claim may move the run's owner into an account while it generates.
   let owner = await currentOwnerOf(run.ownerId);
@@ -507,6 +513,9 @@ async function executeClaimedRun(
     contentSignal: AbortSignal,
   ): Promise<SceneContentResult> => {
     const { outlines, languageDirective, taskEngineMode } = outline();
+    if (sceneIndex === 0 && explanation) {
+      return { content: tutorExplanationSlide(explanation), effectiveOutline: outlines[0]! };
+    }
     const stepId = sceneStepId(sceneIndex, 'content');
     const research = output<ResearchOutput>('research');
     return withRouteRetry(
@@ -542,7 +551,7 @@ async function executeClaimedRun(
   const prewarmAbort = new AbortController();
   const prewarmSignal = AbortSignal.any([signal, prewarmAbort.signal]);
   const startContentPrewarm = (fromIndex: number) => {
-    const concurrency = services.parallelSceneConcurrency();
+    const concurrency = explanation ? 2 : services.parallelSceneConcurrency();
     const sceneCount = outline().outlines.length;
     const pending: number[] = [];
     for (let index = fromIndex; index < sceneCount; index += 1) {
@@ -725,8 +734,12 @@ async function executeClaimedRun(
             content.content,
             agents().stage.id,
           );
-          assertValidScene(result.scene, stepId);
-          return done(result);
+          const scene =
+            index === 0 && explanation
+              ? { ...result.scene, tutorExplanation: true as const }
+              : result.scene;
+          assertValidScene(scene, stepId);
+          return done({ ...result, scene });
         }
         const userProfile = learnerProfileText(input);
         const result = await withRouteRetry(
@@ -785,6 +798,14 @@ async function executeClaimedRun(
   };
 
   const runOutlineStep = async (stepId: string): Promise<StepCommit> => {
+    if (explanation) {
+      return commitOutline(stepId, {
+        outlines: tutorExplanationOutline(explanation),
+        languageDirective: '用简体中文，适合学生当前年级。',
+        courseTitle: explanation.title,
+        taskEngineMode: false,
+      });
+    }
     const research = output<ResearchOutput>('research');
     const pdfText = output<MaterialOutput>('material-analysis')?.pdfText;
     // Outline items reach subscribers while the model writes: each is
@@ -856,6 +877,10 @@ async function executeClaimedRun(
       outlines:
         input.format === 'tutor-short' ? tutorShortOutlines(normalized.value) : normalized.value,
     };
+    return commitOutline(stepId, result);
+  };
+
+  function commitOutline(stepId: string, result: OutlineResult): StepCommit {
     const confirmed: GenerationRunOutline = {
       outlines: result.outlines,
       languageDirective: result.languageDirective,
@@ -892,7 +917,7 @@ async function executeClaimedRun(
         { type: 'state', data: { state: next, step: null } },
       ],
     };
-  };
+  }
 
   const resolveAgents = async (): Promise<AgentsOutput> => {
     const { outlines, languageDirective, courseTitle, taskEngineMode } = outline();
@@ -1001,6 +1026,10 @@ async function executeClaimedRun(
   const narrateScene = async (sceneIndex: number, stepId: string): Promise<void> => {
     const actions = output<SceneActionsResult>(sceneStepId(sceneIndex, 'actions'))!;
     const scene: Scene = structuredClone(actions.scene) as Scene;
+    if (sceneIndex === 0 && explanation) {
+      await appendScene(sceneIndex, stepId, scene);
+      return;
+    }
     const target = await services.narrationTarget(owner);
     if (!target) {
       await appendScene(sceneIndex, stepId, scene);

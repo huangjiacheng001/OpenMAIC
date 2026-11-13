@@ -15,6 +15,13 @@ describe('courses from tutoring conversations', () => {
     expect(shortCourseContext([original, followUp, date, newTopic], 'a')).toEqual({
       title: original.question,
       turns: [{ question: original.question }, { question: followUp.question }],
+      explanation: {
+        title: original.question,
+        sections: [
+          { question: original.question, answer: original.answer },
+          { question: followUp.question, answer: followUp.answer },
+        ],
+      },
     });
     expect(shortCourseContext([original, followUp, date, newTopic], 'b')?.turns).toEqual([
       { question: original.question },

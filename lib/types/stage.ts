@@ -108,6 +108,8 @@ export type AppScene = DslScene<Action, SceneContent> & {
    * scene-derived outline.
    */
   outlineId?: string;
+  /** Readable, responsive explanation for the first scene of a tutoring course. */
+  tutorExplanation?: true;
 };
 export type Scene = AppScene;
 

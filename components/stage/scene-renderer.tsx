@@ -6,6 +6,7 @@ import { SlideEditor as SlideRenderer } from '../slide-renderer/Editor';
 import { QuizView } from '../scene-renderers/quiz-view';
 import { InteractiveRenderer } from '../scene-renderers/interactive-renderer';
 import { PBLRenderer } from '../scene-renderers/pbl-renderer';
+import { ClassroomShortCourseExplanation } from '../tutor/short-course-explanation';
 
 interface SceneRendererProps {
   readonly scene: Scene;
@@ -22,6 +23,14 @@ export function SceneRenderer({ scene, mode }: SceneRendererProps) {
     switch (scene.type) {
       case 'slide':
         if (scene.content.type !== 'slide') return <div>Invalid slide content</div>;
+        if (scene.tutorExplanation)
+          return (
+            <ClassroomShortCourseExplanation
+              key={scene.stageId}
+              stageId={scene.stageId}
+              fallback={<SlideRenderer mode={mode} />}
+            />
+          );
         return <SlideRenderer mode={mode} />;
       case 'quiz':
         if (scene.content.type !== 'quiz') return <div>Invalid quiz content</div>;

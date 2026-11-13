@@ -11,6 +11,7 @@
 import type { AgentInfo } from '@openmaic/generation';
 
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
+import type { ShortCourseExplanation } from '@/lib/tutor/short-course';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { GeneratedAgentConfig } from '@/lib/types/stage';
 
@@ -80,6 +81,8 @@ export interface GenerationRunInput {
   requirement: string;
   /** Only the tutor endpoint sets this constrained course format. */
   format?: 'tutor-short';
+  /** Reuse the completed tutoring explanation for the first scene. Older runs omit it. */
+  tutorExplanation?: ShortCourseExplanation;
   /** Owner-library uploads (`POST /api/materials`), in order. */
   materialIds: string[];
   interactive: boolean;

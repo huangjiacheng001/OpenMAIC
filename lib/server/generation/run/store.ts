@@ -194,13 +194,14 @@ function storedRun(row: RunRow): StoredRun {
 
 /** The part of a stored run its owner reads. */
 export function runSnapshot(run: StoredRun): GenerationRunSnapshot {
+  const { tutorExplanation: _explanation, ...publicInput } = run.input;
   return {
     id: run.id,
     state: run.state,
     step: run.step,
     seq: run.seq,
     input:
-      run.input.format === 'tutor-short' ? { ...run.input, requirement: '问答短课' } : run.input,
+      run.input.format === 'tutor-short' ? { ...publicInput, requirement: '问答短课' } : run.input,
     outline: run.outline,
     agents: run.agents,
     stageId: run.stageId,

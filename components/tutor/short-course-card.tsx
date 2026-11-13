@@ -1,25 +1,34 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { CardSection } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { BookOpen, ArrowRight } from 'lucide-react';
-import type { ShortCourse } from '@/lib/tutor/short-course';
+import type { ShortCourse, ShortCourseExplanation as Explanation } from '@/lib/tutor/short-course';
+import { ShortCourseExplanation } from './short-course-explanation';
 import styles from './family-workspace.module.css';
 
 export function ShortCourseCard({
   course,
   busy,
   error,
+  getExplanation,
   onStart,
   onRetry,
 }: {
   course?: ShortCourse;
   busy: boolean;
   error?: string;
+  getExplanation: () => Explanation | undefined;
   onStart: () => void;
   onRetry: () => void;
 }) {
+  const [explanation, setExplanation] = useState<Explanation>();
+  const preview = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (explanation) preview.current?.scrollIntoView({ block: 'start' });
+  }, [explanation]);
   const canOpen = course && course.stageId && course.ready > 0 && course.state !== 'ended';
   const paused = course?.state === 'paused';
   const done = course?.state === 'completed';
@@ -47,7 +56,9 @@ export function ShortCourseCard({
                 ? '短课已就绪'
                 : canOpen
                   ? '第一节已就绪，后续内容继续生成。'
-                  : '正在准备第一节，你可以继续聊。'}
+                  : explanation
+                    ? '互动和测验正在后台生成。'
+                    : '正在准备第一节，你可以继续聊。'}
             {course.total > 0 ? ' · ' + course.ready + '/' + course.total + ' 节已就绪' : ''}
           </p>
           <div className={styles.actions}>
@@ -73,11 +84,28 @@ export function ShortCourseCard({
         </>
       ) : (
         <>
-          <p className={styles.muted}>围绕这个问题讲一个概念，动手试一次，再做一道检查题。</p>
-          <Button type="button" size="touch" disabled={busy} onClick={onStart}>
-            {busy ? '正在创建短课…' : '生成短课'}
+          <p className={styles.muted}>
+            {explanation && busy
+              ? '正在准备互动和测验。'
+              : '围绕这个问题讲一个概念，动手试一次，再做一道检查题。'}
+          </p>
+          <Button
+            type="button"
+            size="touch"
+            disabled={busy}
+            onClick={() => {
+              setExplanation(getExplanation());
+              onStart();
+            }}
+          >
+            {busy ? '正在创建短课…' : error ? '重试生成' : '生成短课'}
           </Button>
         </>
+      )}
+      {explanation && (
+        <div ref={preview} className="scroll-mt-2">
+          <ShortCourseExplanation explanation={explanation} />
+        </div>
       )}
     </CardSection>
   );
