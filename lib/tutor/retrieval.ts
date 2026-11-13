@@ -9,7 +9,7 @@ type Evidence = TutorSource & { excerpt: string };
 
 const BOOK = /教材|课本|讲义|我的资料|这[本份篇]书|材料库|textbook|my (?:notes|materials)/i;
 const WEB =
-  /联网|网上查|上网查|搜索|帮我查|查(?:一下|资料|一查)|搜(?:一下|一搜|一查)|找(?:一下|一找)?(?:资料|来源|出处)|核实|来源|出处|最新|今日新闻|今天.{0,6}(?:天气|新闻|比赛|汇率)|近[几一两三]年|look up|search (?:for|the web)|latest|current (?:news|weather)|cite (?:your|the) sources/i;
+  /联网|网上查|上网查|搜索|帮我查|查(?:一下|资料|一查)|搜(?:一下|一搜|一查)|找(?:一下|一找)?(?:资料|来源|出处)|核实|来源|出处|最新|现在.{0,12}(?:多少|怎么样|如何|价格)|今年.{0,8}(?:多少|新|变化)|今日新闻|今天.{0,6}(?:天气|新闻|比赛|汇率)|近[几一两三]年|look up|search (?:for|the web)|latest|current (?:news|weather)|cite (?:your|the) sources/i;
 
 export function sourceIntent(question: string): 'material' | 'web' | null {
   if (BOOK.test(question)) return 'material';

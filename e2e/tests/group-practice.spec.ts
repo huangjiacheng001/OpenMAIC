@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('count groups, save a wrong attempt and clear it after a correct redo', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('link', { name: '按组数数练习' }).click();
-  await page.waitForURL('**/practice');
+  await page.goto('/practice/groups');
   await page.getByRole('button', { name: '10 个一组' }).click();
   const group = page.getByRole('button', { name: '第 1 组，10 个' });
   await group.press('Space');
@@ -26,23 +24,4 @@ test('count groups, save a wrong attempt and clear it after a correct redo', asy
   await expect(page.getByText('最近 2 次作答 · 待重做 0 道', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: '下一题' }).click();
   await expect(page.getByText('4 组，每组 10 个。一共有多少个？')).toBeVisible();
-});
-
-test('open group practice from an answer and return to the same conversation', async ({ page }) => {
-  await page.route('**/api/tutor', (route) =>
-    route.fulfill({
-      contentType: 'application/x-ndjson',
-      body: '{"type":"text","delta":"可以每 5 个分一组。"}\n{"type":"done"}\n',
-    }),
-  );
-  await page.goto('/');
-  await page.getByRole('textbox', { name: '输入你的问题' }).fill('怎么按 5 个一组数数？');
-  await page.getByRole('button', { name: '发送', exact: true }).click();
-  const trigger = page.getByRole('button', { name: '练习分组数数' });
-  await trigger.click();
-  await expect(page.getByRole('dialog', { name: '按组数数' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByText('可以每 5 个分一组。', { exact: true })).toBeVisible();
-  await expect(trigger).toBeFocused();
 });

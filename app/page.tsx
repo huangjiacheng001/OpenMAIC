@@ -1,5 +1,10 @@
 import { FamilyTutor } from '@/components/tutor/family-tutor';
 
-export default function Page() {
-  return <FamilyTutor />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ thread?: string }>;
+}) {
+  const { thread } = await searchParams;
+  return <FamilyTutor initialThread={thread} key={thread || 'home'} />;
 }

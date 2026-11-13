@@ -3,24 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClipboardEvent, FormEvent, KeyboardEvent } from 'react';
 import Link from 'next/link';
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  BookOpen,
-  Camera,
-  Calculator,
-  ImagePlus,
-  Mic,
-  Plus,
-  Sparkles,
-  Square,
-  Volume2,
-  X,
-} from 'lucide-react';
+import { ArrowUp, Camera, ImagePlus, Mic, Plus, Square, X } from 'lucide-react';
 import { Streamdown } from 'streamdown';
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { GroupPractice } from './group-practice';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { HomeworkPhotoPreview } from './homework-photo-preview';
+import { FamilyHeader, FamilyNav } from './family-shell';
+import { FamilyProfile } from './family-profile';
+import { SaveHomework } from './save-homework';
+import { useFamilySession } from './use-family-session';
+import { familyMessage, familyRead, familyWrite } from './family-client';
+import {
+  familyTime,
+  type ChildProfile,
+  type HomeworkExchange,
+  type StudyThread,
+} from '@/lib/tutor/family';
+import familyStyles from './family-workspace.module.css';
 import { createSafeMathPlugin } from '@/lib/markdown/safe-math-plugin';
 import { useAudioRecorder, ASR_NOT_CONFIGURED_MESSAGE } from '@/lib/hooks/use-audio-recorder';
 import { MAX_TUTOR_TEXT } from '@/lib/tutor/protocol';
@@ -29,18 +27,18 @@ import { TUTOR_ERRORS, useTutor, type Exchange } from './use-tutor';
 import styles from './family-tutor.module.css';
 
 const markdownPlugins = { math: createSafeMathPlugin() };
-const samples = [
-  { title: '问个问题', example: '为什么月亮有时圆、有时弯？', icon: Sparkles },
-  { title: '拍照问作业', example: '先给我一点提示', icon: Camera },
-  { title: '查找资料', example: '帮我查候鸟迁徙的资料', icon: BookOpen },
-] as const;
-
 function TutorExchange({ exchange, streaming }: { exchange: Exchange; streaming?: boolean }) {
   return (
     <article className={styles.exchange}>
       <div className={styles.question}>
         {exchange.photo && <img src={exchange.photo} alt="本轮题目照片" />}
         {exchange.question && <span>{exchange.question}</span>}
+        {exchange.problem && (
+          <div className={familyStyles.problem}>
+            <span>原题</span>
+            {exchange.problem}
+          </div>
+        )}
       </div>
       {(exchange.answer || exchange.notice || exchange.sources.length > 0) && (
         <div className={styles.answer}>
@@ -70,8 +68,10 @@ function TutorExchange({ exchange, streaming }: { exchange: Exchange; streaming?
                 {exchange.sources.map((source, index) => (
                   <li key={source.href + index}>
                     <a href={source.href} target="_blank" rel="noopener noreferrer">
+                      {source.number && '[' + source.number + '] '}
                       {source.title}
                     </a>
+                    {source.excerpt && <p>{source.excerpt}</p>}
                   </li>
                 ))}
               </ol>
@@ -83,9 +83,10 @@ function TutorExchange({ exchange, streaming }: { exchange: Exchange; streaming?
   );
 }
 
-export function FamilyTutor() {
+export function FamilyTutor({ initialThread }: { initialThread?: string }) {
   const [draft, setDraft] = useState('');
   const [photo, setPhoto] = useState<string>();
+  const [photoPreview, setPhotoPreview] = useState(false);
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [inputError, setInputError] = useState('');
   const [voice, setVoice] = useState<'listening' | 'finishing'>();
@@ -99,7 +100,111 @@ export function FamilyTutor() {
   const feed = useRef<HTMLDivElement>(null);
   const keepAtBottom = useRef(true);
   const preparingPhoto = useRef(false);
-  const { exchanges, pending, status, error, submit, cancel, reset } = useTutor();
+  const { exchanges, pending, status, error, submit, cancel, reset, restore } = useTutor();
+  const { session, refresh, error: sessionError } = useFamilySession();
+  const [child, setChild] = useState<ChildProfile>();
+  const [history, setHistory] = useState<StudyThread[]>([]);
+  const [thread, setThread] = useState(initialThread);
+  const [opening, setOpening] = useState(Boolean(initialThread));
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [queuedSave, setQueuedSave] = useState(false);
+  const [restorePending, setRestorePending] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const activeChild = child || session?.child;
+  const currentThread = useRef(initialThread);
+  const guestExchanges = useRef<Exchange[]>([]);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (!activeChild?.id) return;
+    const ctl = new AbortController();
+    familyRead<{ threads: StudyThread[] }>('threads', { child: activeChild.id }, ctl.signal)
+      .then((result) => {
+        if (!ctl.signal.aborted) setHistory(result.threads);
+      })
+      .catch((cause) => {
+        if (!ctl.signal.aborted) setLoadError(familyMessage(cause));
+      });
+    return () => ctl.abort();
+  }, [activeChild?.id, thread, exchanges.length]);
+
+  useEffect(() => {
+    if (!initialThread || started.current || !session) return;
+    if (!activeChild) {
+      currentThread.current = undefined;
+      setThread(undefined);
+      setOpening(false);
+      return;
+    }
+    const ctl = new AbortController();
+    familyRead<{ exchanges: HomeworkExchange[] }>(
+      'thread',
+      { child: activeChild.id, id: initialThread },
+      ctl.signal,
+    )
+      .then((result) => {
+        if (ctl.signal.aborted) return;
+        started.current = true;
+        restore(result.exchanges);
+      })
+      .catch((cause) => {
+        if (!ctl.signal.aborted) {
+          setLoadError(familyMessage(cause));
+          started.current = true;
+          currentThread.current = undefined;
+          setThread(undefined);
+        }
+      })
+      .finally(() => {
+        if (!ctl.signal.aborted) setOpening(false);
+      });
+    return () => ctl.abort();
+  }, [activeChild, initialThread, restore, session]);
+
+  async function adoptChild(selected: ChildProfile) {
+    const previous = activeChild?.id;
+    const snapshot = !previous ? exchanges : [];
+    if (previous && previous !== selected.id) {
+      reset();
+      setPhoto(undefined);
+      setDraft('');
+      currentThread.current = undefined;
+      setThread(undefined);
+      setHistory([]);
+    }
+    setChild(selected);
+    setProfileOpen(false);
+    if (snapshot.length) {
+      setRestorePending(true);
+      guestExchanges.current = snapshot;
+      const id = currentThread.current || crypto.randomUUID();
+      currentThread.current = id;
+      setThread(id);
+      try {
+        await attachGuestThread(selected.id, id);
+      } catch (cause) {
+        setLoadError(familyMessage(cause));
+      } finally {
+        setRestorePending(false);
+      }
+    }
+    await refresh();
+  }
+
+  async function attachGuestThread(childId: string, threadId: string) {
+    if (!guestExchanges.current.length) return;
+    await familyWrite('attach-thread', {
+      childId,
+      threadId,
+      exchanges: guestExchanges.current.slice(-20).map(({ id, question, answer, problem }) => ({
+        id,
+        question,
+        answer: answer.slice(0, 12000),
+        problem,
+      })),
+    });
+    guestExchanges.current = [];
+  }
 
   const onFinal = useCallback((text: string) => {
     if (!voiceIntent.current) return;
@@ -137,15 +242,28 @@ export function FamilyTutor() {
 
   const send = useCallback(
     async (question: string, image?: string) => {
-      if (preparingPhoto.current) return;
+      if (preparingPhoto.current || opening) return;
       setInputError('');
       keepAtBottom.current = true;
-      if (await submit(question, image)) {
+      let context;
+      if (activeChild) {
+        const id = currentThread.current || crypto.randomUUID();
+        currentThread.current = id;
+        setThread(id);
+        try {
+          await attachGuestThread(activeChild.id, id);
+        } catch (cause) {
+          setLoadError(familyMessage(cause));
+          return;
+        }
+        context = { threadId: id, childId: activeChild.id };
+      }
+      if (await submit(question, image, context)) {
         setDraft('');
         setPhoto(undefined);
       }
     },
-    [submit],
+    [activeChild, opening, submit],
   );
 
   useEffect(() => {
@@ -169,13 +287,14 @@ export function FamilyTutor() {
     if (feed.current && keepAtBottom.current) feed.current.scrollTop = feed.current.scrollHeight;
   }, [exchanges, pending, status]);
 
-  async function addPhoto(file?: File) {
+  async function addPhoto(file?: File, preview = false) {
     if (!file || pending || voiceIntent.current || preparingPhoto.current) return;
     preparingPhoto.current = true;
     setLoadingPhoto(true);
     setInputError('');
     try {
       setPhoto(await prepareTutorPhoto(file));
+      if (preview) setPhotoPreview(true);
       if (!window.matchMedia('(pointer: coarse)').matches) box.current?.focus();
     } catch {
       setInputError('这张图没法打开。可以试试 JPEG、PNG 或截图。');
@@ -238,63 +357,68 @@ export function FamilyTutor() {
     }
   }
 
-  function focusWith(text: string) {
-    setDraft(text);
-    box.current?.focus();
-  }
-
-  function readAloud(text: string) {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.lang = /[\p{Script=Han}]/u.test(text) ? 'zh-CN' : 'en-US';
-    window.speechSynthesis.speak(speech);
-  }
-
-  const chat = exchanges.length > 0 || Boolean(pending);
-  const canSend = !voice && !loadingPhoto && Boolean(draft.trim() || photo);
+  const chat = exchanges.length > 0 || Boolean(pending) || opening;
+  const canSend = !voice && !loadingPhoto && !opening && Boolean(draft.trim() || photo);
   const last = exchanges.at(-1);
+  const original = exchanges.findLast((exchange) => exchange.problem || exchange.photo);
 
   return (
     <main className={styles.shell} lang="zh-CN">
-      <header className={styles.header}>
-        <div className={styles.brand}>
-          <span>
-            <BookOpen size={19} />
-          </span>
-          家庭学习助手
+      <FamilyHeader
+        child={activeChild}
+        title={chat ? '作业讲解' : undefined}
+        back={chat ? '/' : undefined}
+      />
+      {chat && (
+        <div className={styles.threadTools}>
+          <button
+            type="button"
+            onClick={() => {
+              cancelVoice();
+              reset();
+              setDraft('');
+              setPhoto(undefined);
+              setInputError('');
+              setLoadError('');
+              currentThread.current = undefined;
+              guestExchanges.current = [];
+              setThread(undefined);
+              if (initialThread) window.history.replaceState(null, '', '/');
+            }}
+          >
+            <Plus size={16} />
+            新对话
+          </button>
         </div>
-        <nav className={styles.nav} aria-label="主导航">
-          {chat && (
-            <button
-              type="button"
-              onClick={() => {
-                cancelVoice();
-                reset();
-                setDraft('');
-                setPhoto(undefined);
-                setInputError('');
-              }}
-            >
-              <Plus size={16} />
-              新对话
-            </button>
-          )}
-          <Link href="/courses" prefetch={false}>
-            <BookOpen size={16} />
-            课堂
-            <ArrowRight size={14} />
-          </Link>
-        </nav>
-      </header>
+      )}
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className={familyStyles.sheet}>
+          <DialogTitle>选择学习档案</DialogTitle>
+          <DialogDescription>登录后可以保存原题，换设备继续重做。</DialogDescription>
+          <FamilyProfile start="profiles" chooseChild={(selected) => void adoptChild(selected)} />
+        </DialogContent>
+      </Dialog>
 
+      {photo && photoPreview && (
+        <HomeworkPhotoPreview
+          photo={photo}
+          onEdit={setPhoto}
+          onClose={() => setPhotoPreview(false)}
+          onRetake={() => {
+            setPhotoPreview(false);
+            camera.current?.click();
+          }}
+          onSend={() => {
+            setPhotoPreview(false);
+            void send(draft, photo);
+          }}
+        />
+      )}
       {!chat ? (
         <section className={styles.hero}>
-          <div className={styles.heroIcon}>
-            <Sparkles size={27} strokeWidth={1.6} />
-          </div>
-          <h1>今天想学点什么？</h1>
-          <p>打字、拍照，或者说给我听。</p>
+          <p className={familyStyles.eyebrow}>家庭学习</p>
+          <h1>今天想弄懂什么？</h1>
+          <p>发一道题，或说说你卡在哪一步。</p>
         </section>
       ) : (
         <div
@@ -308,41 +432,52 @@ export function FamilyTutor() {
           }}
         >
           <div className={styles.feedContent}>
-            {exchanges.map((exchange, index) => (
-              <TutorExchange key={index} exchange={exchange} />
+            {opening && (
+              <p className={styles.progress} role="status">
+                正在打开原问答…
+              </p>
+            )}
+            {exchanges.map((exchange) => (
+              <TutorExchange key={exchange.id} exchange={exchange} />
             ))}
             {pending && <TutorExchange exchange={pending} streaming />}
             {pending && !pending.answer && (
               <p role="status" className={styles.progress}>
                 <span />
-                {status === 'searching' ? '正在找资料' : '正在准备回答'}
+                {status === 'searching'
+                  ? '正在找资料'
+                  : pending.photo
+                    ? '正在读题'
+                    : '正在准备回答'}
               </p>
             )}
-            {!pending && last && (
-              <div className={styles.followups}>
-                <button type="button" onClick={() => focusWith('再提示一点')}>
-                  再提示一点
-                </button>
-                {/分组|按.{0,8}一组|组数数/.test(last.question + ' ' + last.answer) ? (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <button type="button">练习分组数数</button>
-                    </DialogTrigger>
-                    <DialogContent className={styles.practiceDialog} aria-describedby={undefined}>
-                      <DialogTitle className={styles.practiceDialogTitle}>按组数数</DialogTitle>
-                      <GroupPractice inDialog />
-                    </DialogContent>
-                  </Dialog>
-                ) : (
-                  <button type="button" onClick={() => focusWith('再练一道类似的题')}>
-                    再练一道
-                  </button>
-                )}
-                <button type="button" aria-label="朗读回答" onClick={() => readAloud(last.answer)}>
-                  <Volume2 size={16} />
-                </button>
-              </div>
-            )}
+            {!pending &&
+              !restorePending &&
+              last &&
+              original &&
+              (original.problem || last !== original || !original.photo) && (
+                <SaveHomework
+                  key={original.id + (activeChild?.id || '')}
+                  child={activeChild}
+                  threadId={thread}
+                  exchange={{
+                    ...original,
+                    answer:
+                      last === original ? original.answer : original.answer + '\n\n' + last.answer,
+                  }}
+                  photo={original.photo}
+                  startOpen={queuedSave && Boolean(activeChild)}
+                  beforeSave={
+                    activeChild && thread
+                      ? () => attachGuestThread(activeChild.id, thread)
+                      : undefined
+                  }
+                  onSignIn={() => {
+                    setQueuedSave(true);
+                    setProfileOpen(true);
+                  }}
+                />
+              )}
           </div>
         </div>
       )}
@@ -367,16 +502,24 @@ export function FamilyTutor() {
             accept="image/*"
             capture="environment"
             onChange={(event) => {
-              void addPhoto(event.currentTarget.files?.[0]);
+              void addPhoto(event.currentTarget.files?.[0], true);
               event.currentTarget.value = '';
             }}
           />
           {photo && (
             <div className={styles.preview}>
-              <img src={photo} alt="待发送的照片" />
+              <button
+                type="button"
+                className={styles.photoThumb}
+                onClick={() => setPhotoPreview(true)}
+                aria-label="打开照片预览"
+              >
+                <img src={photo} alt="待发送的照片" />
+              </button>
               <button
                 type="button"
                 disabled={Boolean(pending)}
+                className={styles.photoRemove}
                 aria-label="移除照片"
                 onClick={() => setPhoto(undefined)}
               >
@@ -483,9 +626,10 @@ export function FamilyTutor() {
                 type="submit"
                 className={styles.send}
                 disabled={!canSend}
-                aria-label="发送"
+                aria-label={photo ? '发送照片' : '发送'}
               >
                 <ArrowUp size={21} />
+                {photo && <span>发送照片</span>}
               </button>
             )}
           </div>
@@ -507,31 +651,32 @@ export function FamilyTutor() {
         )}
       </div>
 
+      {(loadError || sessionError) && (
+        <p className={styles.feedback} role="alert">
+          {loadError || sessionError}
+        </p>
+      )}
       {!chat && (
-        <div className={styles.examples} aria-label="试试这样问">
-          {samples.map(({ title, example, icon: Icon }, index) => (
-            <button
-              type="button"
-              key={title}
-              disabled={Boolean(voice)}
-              onClick={() => {
-                if (index === 1) camera.current?.click();
-                else focusWith(example);
-              }}
-            >
-              <Icon size={18} />
-              <span>
-                <strong>{title}</strong>
-                <small>{example}</small>
-              </span>
-              <ArrowDown className={styles.exampleArrow} size={15} />
-            </button>
-          ))}
-          <Link href="/practice" prefetch={false} className={styles.practiceEntry}>
-            <Calculator size={18} />
-            按组数数练习
-          </Link>
-        </div>
+        <>
+          <section className={styles.continue}>
+            <h2>接着学</h2>
+            {history.length ? (
+              <div className={familyStyles.rows}>
+                {history.slice(0, 5).map((item) => (
+                  <Link className={familyStyles.row} key={item.id} href={'/?thread=' + item.id}>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <span className={familyStyles.muted}>{familyTime(item.updatedAt)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className={familyStyles.muted}>还没有学习记录</p>
+            )}
+          </section>
+          <FamilyNav active="/" />
+        </>
       )}
     </main>
   );

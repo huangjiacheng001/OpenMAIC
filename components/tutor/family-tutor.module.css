@@ -177,7 +177,7 @@
   border-radius: 9px;
   object-fit: cover;
 }
-.preview button {
+.preview .photoRemove {
   position: absolute;
   top: -5px;
   right: -8px;
@@ -627,4 +627,60 @@
 .practiceDialogBody {
   display: grid;
   gap: 12px;
+}
+
+.continue {
+  width: min(calc(100% - 36px), 740px);
+  margin: 22px auto auto;
+  padding: 16px 0 24px;
+  border-top: 1px solid var(--tutor-line);
+}
+.continue h2 {
+  font-weight: 650;
+  margin-bottom: 8px;
+}
+.threadTools {
+  display: flex;
+  justify-content: flex-end;
+  width: min(calc(100% - 36px), 740px);
+  margin-inline: auto;
+}
+.threadTools button,
+.send {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.threadTools button {
+  min-height: 42px;
+  color: var(--tutor-green);
+  font-size: 13px;
+}
+@media (max-width: 540px) {
+  .hero {
+    width: calc(100% - 36px);
+    padding: 0;
+    margin: 38px auto 19px;
+    text-align: left;
+  }
+  .hero h1 {
+    font-size: 29px;
+  }
+  .hero p {
+    margin-top: 6px;
+  }
+  .composer {
+    border-radius: 12px;
+    padding: 9px;
+  }
+  .introComposer textarea {
+    min-height: 65px;
+  }
+  .attachments button {
+    padding-inline: 8px;
+    min-width: 40px;
+  }
+  .attachments {
+    gap: 2px;
+  }
 }

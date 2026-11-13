@@ -1,19 +1,16 @@
+import type { HomeworkExchange } from '@/lib/tutor/family';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   MAX_TUTOR_HISTORY,
   MAX_TUTOR_TEXT,
   type TutorError,
   type TutorEvent,
-  type TutorSource,
   type TutorTurn,
 } from '@/lib/tutor/protocol';
 
 type Notice = Extract<TutorEvent, { type: 'notice' }>['code'];
-export type Exchange = {
-  question: string;
+export type Exchange = HomeworkExchange & {
   photo?: string;
-  answer: string;
-  sources: TutorSource[];
   notice?: Notice;
 };
 
@@ -42,11 +39,17 @@ export function useTutor() {
   );
 
   const submit = useCallback(
-    async (question: string, photo?: string) => {
+    async (question: string, photo?: string, context?: { childId: string; threadId: string }) => {
       if (active.current || (!question.trim() && !photo)) return false;
       const controller = new AbortController();
       active.current = controller;
-      let exchange: Exchange = { question: question.trim(), photo, answer: '', sources: [] };
+      let exchange: Exchange = {
+        id: globalThis.crypto.randomUUID(),
+        question: question.trim(),
+        photo,
+        answer: '',
+        sources: [],
+      };
       setPending(exchange);
       setError(undefined);
       setStatus('answering');
@@ -54,7 +57,15 @@ export function useTutor() {
       try {
         const recent = exchanges.slice(-MAX_TUTOR_HISTORY / 2);
         const history = recent.flatMap<TutorTurn>((turn) => [
-          { role: 'user', content: turn.question || '请帮我看看这道题。' },
+          {
+            role: 'user',
+            content: turn.problem
+              ? [turn.question, '原题：' + turn.problem]
+                  .filter(Boolean)
+                  .join('\n')
+                  .slice(0, MAX_TUTOR_TEXT)
+              : turn.question || '请帮我看看这道题。',
+          },
           { role: 'assistant', content: turn.answer.trim().slice(0, MAX_TUTOR_TEXT) },
         ]);
         const previousPhoto = recent.findLastIndex((turn) => Boolean(turn.photo));
@@ -63,6 +74,7 @@ export function useTutor() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             question: exchange.question,
+            ...(context && { ...context, exchangeId: exchange.id }),
             history,
             photo: photo || recent[previousPhoto]?.photo,
             photoTurn: !photo && previousPhoto >= 0 ? previousPhoto * 2 : undefined,
@@ -101,6 +113,7 @@ export function useTutor() {
               }
               if (event.type === 'text')
                 exchange = { ...exchange, answer: exchange.answer + event.delta };
+              if (event.type === 'problem') exchange = { ...exchange, problem: event.problem };
               if (event.type === 'sources') exchange = { ...exchange, sources: event.sources };
               if (event.type === 'notice') exchange = { ...exchange, notice: event.code };
               if (event.type === 'status') setStatus(event.status);
@@ -143,5 +156,14 @@ export function useTutor() {
     setError(undefined);
   }, [cancel]);
 
-  return { exchanges, pending, status, error, submit, cancel, reset };
+  const restore = useCallback(
+    (history: HomeworkExchange[]) => {
+      cancel();
+      setExchanges(history);
+      setError(undefined);
+    },
+    [cancel],
+  );
+
+  return { exchanges, pending, status, error, submit, cancel, reset, restore };
 }

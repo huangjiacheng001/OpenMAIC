@@ -40,7 +40,7 @@ test('one composer accepts text, retains failed input and sends a photo follow-u
     ),
   });
   await expect(page.getByAltText('待发送的照片')).toBeVisible();
-  await page.getByRole('button', { name: '发送', exact: true }).click();
+  await page.getByRole('button', { name: '发送照片', exact: true }).click();
   await expect(page.getByAltText('本轮题目照片')).toBeVisible();
   await expect(page.getByAltText('待发送的照片')).toHaveCount(0);
   expect(sent[2].photo).toMatch(/^data:image\/jpeg;base64,/);
@@ -49,6 +49,7 @@ test('one composer accepts text, retains failed input and sends a photo follow-u
   await expect(question).toHaveValue('');
   expect(sent[3].photo).toBe(sent[2].photo);
   expect(sent[3].photoTurn).toBe(2);
+  await page.getByRole('button', { name: '新对话' }).click();
   await expect(page.getByRole('link', { name: '课堂', exact: true })).toHaveAttribute(
     'href',
     '/courses',

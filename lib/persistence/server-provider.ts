@@ -24,6 +24,7 @@ import { ensureWorkspaceModelConfigSchema } from '@/lib/persistence/workspace-mo
 import { ensureStageMetaSchema } from '@/lib/persistence/stage-meta';
 import { APP_RUNTIME_PAYLOAD_VALIDATORS } from '@/lib/runtime/payload-validators';
 import { ensureOwnerAgentSchema } from '@/lib/server/agents/store';
+import { ensureFamilyLearningSchema } from './family-learning';
 import { ensurePBLProjectSchema } from './pbl-projects';
 import { ensurePBLStudySchema } from './pbl-studies';
 
@@ -104,6 +105,7 @@ async function createServerPersistenceProvider(
       await ensureLegacyClassroomImportSchema(locked);
       await ensureWorkspaceModelConfigSchema(locked);
       await ensureOwnerAgentSchema(locked);
+      await ensureFamilyLearningSchema(locked);
     });
     const withTransaction = nodePostgresTransaction(queryable);
     const byteStore = configuredLazyAssetByteStore(queryable);
