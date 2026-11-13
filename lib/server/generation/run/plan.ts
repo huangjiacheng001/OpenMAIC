@@ -54,9 +54,14 @@ export function preparationSteps(input: Pick<GenerationRunInput, 'materialIds'>)
 }
 
 /** The steps after the outline is confirmed, for an outline of `sceneCount` scenes. */
-export function generationSteps(sceneCount: number): RunStep[] {
+export function generationSteps(sceneCount: number, preferredScene?: number): RunStep[] {
   const steps: RunStep[] = [{ id: 'agents', kind: 'agents' }];
-  for (let sceneIndex = 0; sceneIndex < sceneCount; sceneIndex += 1) {
+  const order = Array.from({ length: sceneCount }, (_, index) => index);
+  if (preferredScene && preferredScene < sceneCount) {
+    order.splice(preferredScene, 1);
+    order.splice(1, 0, preferredScene);
+  }
+  for (const sceneIndex of order) {
     for (const kind of SCENE_STEP_KINDS) {
       steps.push({ id: sceneStepId(sceneIndex, kind), kind, sceneIndex });
     }
@@ -88,6 +93,7 @@ export function advanceRun(input: {
   runInput: Pick<GenerationRunInput, 'materialIds'>;
   completed: ReadonlySet<string>;
   sceneCount: number;
+  preferredScene?: number;
 }): RunAdvance {
   const { state, completed } = input;
   if (state === 'preparing' || state === 'outlining') {
@@ -96,7 +102,9 @@ export function advanceRun(input: {
     return { kind: 'step', step: next, state: phaseOfStep(next) };
   }
   if (state === 'generating') {
-    const next = generationSteps(input.sceneCount).find((step) => !completed.has(step.id));
+    const next = generationSteps(input.sceneCount, input.preferredScene).find(
+      (step) => !completed.has(step.id),
+    );
     if (!next) return { kind: 'complete' };
     return { kind: 'step', step: next, state: 'generating' };
   }

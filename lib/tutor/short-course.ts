@@ -21,6 +21,8 @@ export type ShortCourse = {
   stageId: string | null;
   ready: number;
   total: number;
+  quizSceneId?: string;
+  interactiveSceneId?: string;
 };
 
 const teachingQuestion =

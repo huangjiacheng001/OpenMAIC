@@ -77,6 +77,8 @@ import {
 } from '@/components/canvas/slide-element-pick-overlay';
 import { shouldClearDraftElementReference } from '@/components/chat/element-reference-receipt';
 
+import { Button } from '@/components/ui/button';
+
 type DraftElementReference = {
   reference: ElementReference;
   selectionVersion: number;
@@ -160,6 +162,11 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
     const generationInterrupted = useStageStore.use.generationInterrupted();
 
     const currentScene = getCurrentScene();
+    const isTutorCourse = scenes.some((scene) => scene.tutorExplanation === true);
+    const tutorQuiz = isTutorCourse ? scenes.find((scene) => scene.type === 'quiz') : undefined;
+    const tutorActivity = isTutorCourse
+      ? scenes.find((scene) => scene.type === 'interactive')
+      : undefined;
     const coursewareReferenceEnabled = isCoursewareReferenceEnabled();
     const [elementPickActive, setElementPickActiveState] = useState(false);
     const elementPickActiveRef = useRef(false);
@@ -1736,6 +1743,41 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
               hideGlobalControls={hideHeaderGlobalControls}
               hideCourseActions={hideHeaderCourseActions}
             />
+          )}
+
+          {isTutorCourse && !hideHeader && !isPresenting && (tutorQuiz || tutorActivity) && (
+            <div className="flex shrink-0 flex-wrap items-center gap-1 border-b bg-workspace px-2">
+              {tutorQuiz && (
+                <Button
+                  variant="ghost"
+                  size="touch"
+                  type="button"
+                  aria-current={currentSceneId === tutorQuiz.id ? 'step' : undefined}
+                  className="text-primary-text aria-current:bg-primary-soft"
+                  onClick={() => void gatedSceneSwitch(tutorQuiz.id)}
+                >
+                  {tutorActivity ? '测验' : '先做测验'}
+                </Button>
+              )}
+              {tutorActivity ? (
+                <Button
+                  variant="ghost"
+                  size="touch"
+                  type="button"
+                  aria-current={currentSceneId === tutorActivity.id ? 'step' : undefined}
+                  className="text-primary-text aria-current:bg-primary-soft"
+                  onClick={() => void gatedSceneSwitch(tutorActivity.id)}
+                >
+                  做互动
+                </Button>
+              ) : generatingOutlines.some((item) => item.type === 'interactive') &&
+                !failedOutlines.some((item) => item.type === 'interactive') &&
+                !generationInterrupted ? (
+                <span role="status" className="px-1 text-xs text-muted-foreground">
+                  互动生成中
+                </span>
+              ) : null}
+            </div>
           )}
 
           {/* Canvas Area — playback-only renderer. The parent Stage swaps

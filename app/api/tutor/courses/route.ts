@@ -140,6 +140,28 @@ export async function GET(req: NextRequest) {
     const links = await lookupThread(pool, ownerId, scope, thread!);
     const runs = await Promise.all(links.map((link) => readGenerationRun(link.run_id, ownerId)));
     const courses = links.flatMap((link, i) => (runs[i] ? [toCourse(link, runs[i]!)] : []));
+    const stages = courses.filter(
+      (course) => course.stageId && course.ready > 1 && course.state !== 'ended',
+    );
+    if (stages.length > 0) {
+      const { rows } = await pool.query<{ runId: string; id: string; type: string }>(
+        `SELECT r.id AS "runId", s.id, s.data->>'type' AS type
+          FROM tutor_short_courses l JOIN generation_runs r ON r.id=l.run_id AND r.owner_id=l.owner_id
+          JOIN document_scenes s ON s.stage_id=r.stage_id
+          WHERE l.owner_id=$1 AND l.scope=$2 AND r.id=ANY($3::text[]) AND r.state<>'ended'
+            AND s.data->>'type' IN ('quiz','interactive')
+          ORDER BY s.scene_order, s.id`,
+        [ownerId, scope, stages.map((course) => course.id)],
+      );
+      for (const course of stages) {
+        course.quizSceneId = rows.find(
+          (scene) => scene.runId === course.id && scene.type === 'quiz',
+        )?.id;
+        course.interactiveSceneId = rows.find(
+          (scene) => scene.runId === course.id && scene.type === 'interactive',
+        )?.id;
+      }
+    }
     return response(headers, {
       courses,
       ...(query.get('restore') === '1' &&

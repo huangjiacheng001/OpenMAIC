@@ -698,7 +698,7 @@ async function executeClaimedRun(
             if (isGenerationRunLeaseLostError(result.failed)) throw result.failed;
             // A host failure no retry helps (the other scenes would meet it
             // too) pauses the run at this scene now.
-            if (isNonRetryableHostFailure(result.failed)) throw result.failed;
+            if (!explanation && isNonRetryableHostFailure(result.failed)) throw result.failed;
             // Mark the scene and go on with the others.
             const message =
               result.failed instanceof Error
@@ -1816,11 +1816,33 @@ async function executeClaimedRun(
     for (;;) {
       if (signal.aborted) return 'interrupted';
       owner = await currentOwnerOf(run.ownerId);
+      let preferredScene: number | undefined;
+      if (explanation && run.state === 'generating' && courseExists()) {
+        // The short course has no dependencies between its activity and quiz.
+        // Persist whichever is ready first while preserving their outline order.
+        if (!ahead.prewarm) startContentPrewarm(1);
+        const remaining = (run.outline?.outlines ?? [])
+          .map((_, index) => index)
+          .slice(1)
+          .filter(
+            (index) => !skippedScenes.has(index) && !steps.has(sceneStepId(index, 'narration')),
+          );
+        preferredScene = remaining.find((index) => steps.has(sceneStepId(index, 'content')));
+        if (preferredScene === undefined && remaining.length > 1 && ahead.prewarm) {
+          preferredScene = await Promise.race(
+            remaining.map(async (index) => {
+              await ahead.prewarm?.get(index);
+              return index;
+            }),
+          );
+        }
+      }
       const advance = advanceRun({
         state: run.state,
         runInput: input,
         completed: new Set([...steps.keys(), ...skippedStepIds()]),
         sceneCount: run.outline?.outlines.length ?? 0,
+        preferredScene,
       });
       if (advance.kind === 'await-outline-confirmation') {
         // Unreachable through commits (the outline's commit moves the run),
