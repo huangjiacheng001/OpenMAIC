@@ -17,7 +17,7 @@ docker --context colima-openmaic compose --env-file .env.development.local \
 corepack pnpm dev --hostname 127.0.0.1 --port 3001
 ```
 
-在 <http://127.0.0.1:3001> 验证改动。开发服务器支持 Next.js Fast Refresh。本机复测发现，当前版本有时不会识别已保存的源码改动。遇到这种情况可重启开发服务器。修改通过 `dist/` 导出的工作区包时，运行 `corepack pnpm --filter <包名> dev` 监听编译（该包有 `dev` 脚本时），或运行 `corepack pnpm build:packages`。修改环境变量或模型配置后重启开发服务器。
+在 <http://127.0.0.1:3001> 验证改动。本机开发用 Webpack 提供 Next.js Fast Refresh，避免当前 Turbopack 偶尔漏掉浏览器端更新。打开开发站后保存页面组件，浏览器会自动更新；首次打开新页面需要先编译。正式版仍使用默认的 Next.js 构建流程。修改通过 `dist/` 导出的工作区包时，运行 `corepack pnpm --filter <包名> dev` 监听编译（该包有 `dev` 脚本时），或运行 `corepack pnpm build:packages`。修改环境变量或模型配置后重启开发服务器。
 
 本机开发数据库使用独立的 Compose 项目和数据卷，发布到 `127.0.0.1:5432`。Next.js 只在开发模式读取 `.env.development.local`，该文件同时提供开发数据库的密码和连接地址。开发模型配置位于 `.env.development.models.yml`。需要实测 AI 功能时，在开发站的模型设置中接入服务。使用正式站同样的模型时，开发站也需要自己的授权。
 

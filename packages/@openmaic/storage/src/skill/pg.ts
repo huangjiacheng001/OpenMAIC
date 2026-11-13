@@ -9,8 +9,6 @@
  * a deployment that provisions this table with its own migration tooling must
  * reproduce it exactly for `ensureUserSkillSchema` to stay the intended no-op.
  */
-import { randomBytes } from 'node:crypto';
-
 import { applySchemaMigrations, type SchemaMigrationSet } from '../pg-migrations.js';
 import type { Queryable, WithTransaction } from '../runtime/pg.js';
 import {
@@ -250,7 +248,16 @@ export class PgUserSkillStore implements UserSkillStore {
     this.queryable = queryable;
     this.transactionHook = options.withTransaction;
     this.tableNames = resolveTableNames(options.tableNames);
-    this.createId = options.createId ?? (() => `usk_${randomBytes(12).toString('base64url')}`);
+    this.createId =
+      options.createId ??
+      (() => {
+        const bytes = globalThis.crypto.getRandomValues(new Uint8Array(12));
+        // Twelve bytes encode to 16 base64 characters without padding.
+        const suffix = btoa(String.fromCharCode(...bytes))
+          .replaceAll('+', '-')
+          .replaceAll('/', '_');
+        return `usk_${suffix}`;
+      });
     this.resolveOwner = options.resolveFinalOwner ?? (async (_transaction, ownerId) => ownerId);
   }
 
